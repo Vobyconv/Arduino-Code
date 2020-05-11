@@ -1,3 +1,4 @@
+#include <Adafruit_NeoPixel.h>
 #include "rdm630.h"
 
 /**
