@@ -6,15 +6,18 @@
  */
 
 const byte NUM_STAGES = 4;
+const uint32_t MIN_READS = 3;
 
 typedef struct programState {
     bool isStageCompleted[NUM_STAGES];
     bool isRelayOpen;
+    uint32_t consecutiveReads[NUM_STAGES];
 } ProgramState;
 
 ProgramState progState = {
     .isStageCompleted = { false, false, false, false },
-    .isRelayOpen = false
+    .isRelayOpen = false,
+    .consecutiveReads = { 0, 0, 0, 0 }
 };
 
 /**
@@ -176,8 +179,17 @@ void initRfidReaders()
 
 void onValidTag(int idx)
 {
+    bool enoughReads = progState.consecutiveReads[idx] >= MIN_READS;
+
+    if (progState.isStageCompleted[idx] || !enoughReads) {
+        return;
+    }
+
     progState.isStageCompleted[idx] = true;
-    Serial.println(F("Showing LEDs"));
+
+    Serial.print(F("Showing LEDs for #"));
+    Serial.println(idx);
+
     showStageLeds(idx);
 }
 
@@ -197,11 +209,17 @@ void pollRfidReaders()
         Serial.print(F(": "));
         Serial.println(tagId);
 
-        if (validStageTags[i].compareTo(tagId) == 0 && !progState.isStageCompleted[i]) {
-            Serial.print(F("Valid tag on #"));
-            Serial.println(i);
+        if (validStageTags[i].compareTo(tagId) == 0) {
+            progState.consecutiveReads[i]++;
+
+            Serial.print(F("Read on #"));
+            Serial.print(i);
+            Serial.print(F(": "));
+            Serial.println(progState.consecutiveReads[i]);
 
             onValidTag(i);
+        } else {
+            progState.consecutiveReads[i] = 0;
         }
 
         for (int j = 0; j < NUM_RESET_TAGS; j++) {
@@ -225,6 +243,7 @@ void resetGame()
 
     for (int i = 0; i < NUM_STAGES; i++) {
         progState.isStageCompleted[i] = false;
+        progState.consecutiveReads[i] = 0;
     }
 
     lockRelay();
