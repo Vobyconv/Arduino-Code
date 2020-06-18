@@ -41,8 +41,8 @@ const byte PIN_RFID_02_RX = 3;
 const byte PIN_RFID_02_TX = A1;
 const byte PIN_RFID_03_RX = 4;
 const byte PIN_RFID_03_TX = A2;
-const byte PIN_RFID_04_RX = 5;
-const byte PIN_RFID_04_TX = A3;
+//const byte PIN_RFID_04_RX = 5;
+//const byte PIN_RFID_04_TX = A3;
 
 /**
  * LED strip.
@@ -64,11 +64,17 @@ const uint32_t LED_COLORS[NUM_STAGES] = {
 //    1, 1, 1, 1
 //};
 
-const byte LED_Strips[NUM_STAGES] = {6, 7, 8};
+//const byte LED_Strips[NUM_STAGES] = {6, 7, 8};
 
-Adafruit_NeoPixel ledStrip1 = Adafruit_NeoPixel(shortStrip, LED_Strips[1], NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel ledStrip2 = Adafruit_NeoPixel(shortStrip, LED_Strips[2], NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel ledStrip3 = Adafruit_NeoPixel(longStrip, LED_Strips[3], NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledStrip1 = Adafruit_NeoPixel(shortStrip, 6, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledStrip2 = Adafruit_NeoPixel(shortStrip, 7, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledStrip3 = Adafruit_NeoPixel(longStrip, 8, NEO_GRB + NEO_KHZ800);
+
+Adafruit_NeoPixel LED_Strips[NUM_STAGES] = {
+  ledStrip1,
+  ledStrip2,
+  ledStrip3
+};
 
 /**
  * RFID readers.
@@ -120,26 +126,23 @@ void initLedStrip()
 
 void fillLedStrips(int idx)
 {
+  LED_Strips[idx].clear();
+  LED_Strips[idx].show();
+  
     if (idx >= NUM_STAGES) {
         return;
     }
 
-    int iniIdx = 0;
+   //int iniIdx = 0;
 
-    for (int i = 0; i < shortStrip; i++) {
-        iniIdx += LED_Strips[NUM_STAGES];
-    }
+    uint32_t color = LED_COLORS[idx];
 
-    int endIdx = iniIdx + LED_Strips[NUM_STAGES];
-
-    uint32_t color = LED_COLORS[1];
-
-    for (int i = iniIdx; i < endIdx; i++) {
-        ledStrip1.setPixelColor(i, color);
-    }
-
-    ledStrip1.show();
-    delay(50);
+    for (int i = 0; i < LED_Strips[idx].numPixels(); i++) {
+        LED_Strips[idx].setPixelColor(i, color);
+        LED_Strips[idx].show();
+        delay(50); 
+}
+   
 }
 
 //void showStageLeds(int idx)
@@ -218,7 +221,7 @@ void onValidTag(int idx)
 {
     progState.isStageCompleted[idx] = true;
     Serial.println(F("Showing LEDs"));
-//    showStageLeds(idx);
+//showStageLeds(idx);
     fillLedStrips(idx);
 }
 
