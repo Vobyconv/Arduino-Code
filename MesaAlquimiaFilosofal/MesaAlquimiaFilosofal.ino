@@ -51,9 +51,9 @@ const byte PIN_RFID_03_TX = A2;
 const byte DEFAULT_BRIGHTNESS = 150;
 
 const uint32_t LED_COLORS[NUM_STAGES] = {
-    Adafruit_NeoPixel::Color(255, 0, 0),
-    Adafruit_NeoPixel::Color(0, 255, 0),
-    Adafruit_NeoPixel::Color(0, 0, 255),
+    Adafruit_NeoPixel::Color(255,255, 0),
+    Adafruit_NeoPixel::Color(0, 255, 125),
+    Adafruit_NeoPixel::Color(0, 30, 255),
 };
 
 //sum(LED_STAGE_PATCH_SIZES) == NUM_LEDS
@@ -91,15 +91,15 @@ RDM6300 rfidReaders[NUM_STAGES] = {
 };
 
 String validStageTags[NUM_STAGES] = {
-    "100079541400",
-    "100078F4A500",
-    "100079816C00",
+    "100079521800",
+    "100079634300",
+    "100079810300",
 };
 
 const byte NUM_RESET_TAGS = 1;
 
 String resetTags[NUM_RESET_TAGS] = {
-    "1D0027AABB00"
+    "100079546300"
 };
 
 /**
