@@ -25,9 +25,6 @@ ProgramState progState = {
  * Pins.
  */
 
-const byte LONG_STRIP = 44;
-const byte SHORT_STRIP = 13;
-
 const byte RELAY_PINS = 12;
 
 // Arduino RX pin <--> RFID reader TX pin
@@ -38,6 +35,10 @@ const byte PIN_RFID_02_RX = 3;
 const byte PIN_RFID_02_TX = A1;
 const byte PIN_RFID_03_RX = 4;
 const byte PIN_RFID_03_TX = A2;
+
+const uint16_t PIN_STRIP_01 = 6;
+const uint16_t PIN_STRIP_02 = 7;
+const uint16_t PIN_STRIP_03 = 8;
 
 /**
  * LED strip.
@@ -51,11 +52,25 @@ const uint32_t LED_COLORS[NUM_STAGES] = {
     Adafruit_NeoPixel::Color(0, 30, 255),
 };
 
-Adafruit_NeoPixel ledStrip1 = Adafruit_NeoPixel(SHORT_STRIP, 6, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel ledStrip2 = Adafruit_NeoPixel(SHORT_STRIP, 7, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel ledStrip3 = Adafruit_NeoPixel(LONG_STRIP, 8, NEO_GRB + NEO_KHZ800);
+const uint16_t SIZE_STRIP_LONG = 44;
+const uint16_t SIZE_STRIP_SHORT = 13;
 
-Adafruit_NeoPixel LED_Strips[NUM_STAGES] = {
+Adafruit_NeoPixel ledStrip1 = Adafruit_NeoPixel(
+    SIZE_STRIP_SHORT,
+    PIN_STRIP_01,
+    NEO_GRB + NEO_KHZ800);
+
+Adafruit_NeoPixel ledStrip2 = Adafruit_NeoPixel(
+    SIZE_STRIP_SHORT,
+    PIN_STRIP_02,
+    NEO_GRB + NEO_KHZ800);
+
+Adafruit_NeoPixel ledStrip3 = Adafruit_NeoPixel(
+    SIZE_STRIP_LONG,
+    PIN_STRIP_03,
+    NEO_GRB + NEO_KHZ800);
+
+Adafruit_NeoPixel ledStrips[NUM_STAGES] = {
     ledStrip1,
     ledStrip2,
     ledStrip3
@@ -64,6 +79,8 @@ Adafruit_NeoPixel LED_Strips[NUM_STAGES] = {
 /**
  * RFID readers.
  */
+
+const int NUM_TAG_OPTIONS = 2;
 
 RDM6300 rfid01(PIN_RFID_01_RX, PIN_RFID_01_TX);
 RDM6300 rfid02(PIN_RFID_02_RX, PIN_RFID_02_TX);
@@ -75,10 +92,10 @@ RDM6300 rfidReaders[NUM_STAGES] = {
     rfid03
 };
 
-String validStageTags[NUM_STAGES] = {
-    "100079521800",
-    "100079634300",
-    "100079810300",
+String validStageTags[NUM_STAGES][NUM_TAG_OPTIONS] = {
+    { "100079521800", "100079521800" },
+    { "100079634300", "100079634300" },
+    { "100079810300", "100079810300" }
 };
 
 const byte NUM_RESET_TAGS = 1;
@@ -111,19 +128,21 @@ void initLedStrip()
 
 void fillLedStrips(int idx)
 {
-    LED_Strips[idx].clear();
-    LED_Strips[idx].show();
-
     if (idx >= NUM_STAGES) {
         return;
     }
 
+    const unsigned long stepDelayMs = 50;
+
+    ledStrips[idx].clear();
+    ledStrips[idx].show();
+
     uint32_t color = LED_COLORS[idx];
 
-    for (int i = 0; i < LED_Strips[idx].numPixels(); i++) {
-        LED_Strips[idx].setPixelColor(i, color);
-        LED_Strips[idx].show();
-        delay(50);
+    for (int i = 0; i < ledStrips[idx].numPixels(); i++) {
+        ledStrips[idx].setPixelColor(i, color);
+        ledStrips[idx].show();
+        delay(stepDelayMs);
     }
 }
 
@@ -180,8 +199,33 @@ void onValidTag(int idx)
 {
     progState.isStageCompleted[idx] = true;
     Serial.println(F("Showing LEDs"));
-    //showStageLeds(idx);
     fillLedStrips(idx);
+}
+
+bool isValidTag(int idxStage, String tagId)
+{
+    if (progState.isStageCompleted[idxStage]) {
+        return false;
+    }
+
+    for (int i = 0; i < NUM_TAG_OPTIONS; i++) {
+        if (validStageTags[idxStage][i].compareTo(tagId) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool isResetTag(String tagId)
+{
+    for (int i = 0; i < NUM_RESET_TAGS; i++) {
+        if (resetTags[i].compareTo(tagId) == 0) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void pollRfidReaders()
@@ -200,19 +244,15 @@ void pollRfidReaders()
         Serial.print(F(": "));
         Serial.println(tagId);
 
-        if (validStageTags[i].compareTo(tagId) == 0 && !progState.isStageCompleted[i]) {
+        if (isValidTag(i, tagId)) {
             Serial.print(F("Valid tag on #"));
             Serial.println(i);
-
             onValidTag(i);
         }
 
-        for (int j = 0; j < NUM_RESET_TAGS; j++) {
-            if (resetTags[j].compareTo(tagId) == 0) {
-                Serial.println(F("Reset tag detected"));
-                resetGame();
-                break;
-            }
+        if (isResetTag(tagId)) {
+            Serial.println(F("Reset tag"));
+            resetGame();
         }
     }
 }
