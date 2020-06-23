@@ -13,7 +13,11 @@ typedef struct programState {
 } ProgramState;
 
 ProgramState progState = {
-    .isStageCompleted = { false, false, false, },
+    .isStageCompleted = {
+        false,
+        false,
+        false,
+    },
     .isRelayOpen = false
 };
 
@@ -21,15 +25,8 @@ ProgramState progState = {
  * Pins.
  */
 
-//const byte LED_1 = 6;
-//const byte LED_2 = 7;
-//const byte LED_3 = 8;
-
-const byte longStrip = 44;
-const byte shortStrip= 13;
-
-
-//const byte RELAY_PINS[NUM_STAGES] = {6, 7, 8};
+const byte LONG_STRIP = 44;
+const byte SHORT_STRIP = 13;
 
 const byte RELAY_PINS = 12;
 
@@ -41,8 +38,6 @@ const byte PIN_RFID_02_RX = 3;
 const byte PIN_RFID_02_TX = A1;
 const byte PIN_RFID_03_RX = 4;
 const byte PIN_RFID_03_TX = A2;
-//const byte PIN_RFID_04_RX = 5;
-//const byte PIN_RFID_04_TX = A3;
 
 /**
  * LED strip.
@@ -51,29 +46,19 @@ const byte PIN_RFID_03_TX = A2;
 const byte DEFAULT_BRIGHTNESS = 150;
 
 const uint32_t LED_COLORS[NUM_STAGES] = {
-    Adafruit_NeoPixel::Color(255,255, 0),
+    Adafruit_NeoPixel::Color(255, 255, 0),
     Adafruit_NeoPixel::Color(0, 255, 125),
     Adafruit_NeoPixel::Color(0, 30, 255),
 };
 
-//sum(LED_STAGE_PATCH_SIZES) == NUM_LEDS
-
-//const byte NUM_LEDS = 4;
-
-//const byte LED_STAGE_PATCH_SIZES[NUM_STAGES] = {
-//    1, 1, 1, 1
-//};
-
-//const byte LED_Strips[NUM_STAGES] = {6, 7, 8};
-
-Adafruit_NeoPixel ledStrip1 = Adafruit_NeoPixel(shortStrip, 6, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel ledStrip2 = Adafruit_NeoPixel(shortStrip, 7, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel ledStrip3 = Adafruit_NeoPixel(longStrip, 8, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledStrip1 = Adafruit_NeoPixel(SHORT_STRIP, 6, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledStrip2 = Adafruit_NeoPixel(SHORT_STRIP, 7, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledStrip3 = Adafruit_NeoPixel(LONG_STRIP, 8, NEO_GRB + NEO_KHZ800);
 
 Adafruit_NeoPixel LED_Strips[NUM_STAGES] = {
-  ledStrip1,
-  ledStrip2,
-  ledStrip3
+    ledStrip1,
+    ledStrip2,
+    ledStrip3
 };
 
 /**
@@ -126,47 +111,21 @@ void initLedStrip()
 
 void fillLedStrips(int idx)
 {
-  LED_Strips[idx].clear();
-  LED_Strips[idx].show();
-  
+    LED_Strips[idx].clear();
+    LED_Strips[idx].show();
+
     if (idx >= NUM_STAGES) {
         return;
     }
-
-   //int iniIdx = 0;
 
     uint32_t color = LED_COLORS[idx];
 
     for (int i = 0; i < LED_Strips[idx].numPixels(); i++) {
         LED_Strips[idx].setPixelColor(i, color);
         LED_Strips[idx].show();
-        delay(50); 
+        delay(50);
+    }
 }
-   
-}
-
-//void showStageLeds(int idx)
-//{
-//    if (idx >= NUM_STAGES) {
-//        return;
-//    }
-//
-//    int iniIdx = 0;
-//
-//    for (int i = 0; i < idx; i++) {
-//        iniIdx += LED_STAGE_PATCH_SIZES[i];
-//    }
-//
-//    int endIdx = iniIdx + LED_STAGE_PATCH_SIZES[idx];
-//
-//    uint32_t color = LED_COLORS[idx];
-//
-//    for (int i = iniIdx; i < endIdx; i++) {
-//        ledStrip.setPixelColor(i, color);
-//    }
-//
-//    ledStrip.show();
-//}
 
 /**
  * Relay functions.
@@ -221,7 +180,7 @@ void onValidTag(int idx)
 {
     progState.isStageCompleted[idx] = true;
     Serial.println(F("Showing LEDs"));
-//showStageLeds(idx);
+    //showStageLeds(idx);
     fillLedStrips(idx);
 }
 
