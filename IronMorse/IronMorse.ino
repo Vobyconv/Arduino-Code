@@ -18,13 +18,18 @@ void iniled(){
   strip1.clear();
 }
 
+void a(){punto(); raya(); delay(1000);}
+void j(){punto(); raya(); raya();raya(); delay(1000);}
+void r(){punto(); raya(); punto(); delay(1000);}
+void v(){punto(); punto(); punto(); raya(); delay(1000);}
+void i(){punto(); punto(); delay(1000);}
 void s(){punto(); punto(); punto(); delay(1000);}
 void o(){raya(); raya(); raya(); delay(1000);}
 
 void punto(){
-  for (int i = 0; i <= puntosled; i++) {
-        strip1.setPixelColor(i, 10, 255, 10);
-        strip1.show();
+	for (int i = 0; i <= puntosled; i++) {
+  		  strip1.setPixelColor(i, 10, 255, 10);
+  		  strip1.show();
           }
           delay(corto);
           strip1.clear();
@@ -33,9 +38,9 @@ void punto(){
 }
 
 void raya(){
-  for (int i = 0; i <= puntosled; i++) {
-        strip1.setPixelColor(i, 10, 255, 10);
-        strip1.show();
+	for (int i = 0; i <= puntosled; i++) {
+  		  strip1.setPixelColor(i, 10, 255, 10);
+  		  strip1.show();
           }
           delay(largo);
           strip1.clear();
@@ -46,8 +51,8 @@ void raya(){
 
 void start(){
  for (int i = 0; i <= puntosled; i++) {
-    strip1.setPixelColor(i, 255, 10, 10);
-    strip1.show();
+  	strip1.setPixelColor(i, 255, 10, 10);
+  	strip1.show();
     }
     delay(1000);
     strip1.clear();
@@ -57,29 +62,28 @@ void start(){
 
 void sensorluz(){
   
-int mediluz = analogRead(A1);
-  
+int mediluz = analogRead(A1); 
 int medipos = map(mediluz, 6, 679, 0, 10);
   
   Serial.print("{poten: ");
   Serial.println(medipos);
 
 
-     if (medipos > 5){
-       start();
-         
-         
-      s();
-        o();
-        s();
-         
-          
+	if (medipos > 5){
+    start();
              
-        }
-        else {
-        strip1.clear();
-        strip1.show();  
-        }
+  		j();
+    a();
+    r();
+    v();
+    i();
+    s();
+                      
+  }
+  else {
+  strip1.clear();
+  strip1.show();  
+  }
 }
 
 
@@ -93,5 +97,4 @@ void setup(){
 void loop()
 {
 sensorluz();
-
 }
