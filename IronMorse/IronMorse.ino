@@ -79,17 +79,26 @@ void start(){
 }
 
 void sensorluz(){
+ int poten = analogRead(A2); 
+ int medipot = map(poten, 0, 1024, 0, 20);
+ 
+  Serial.print("{pot: ");
+  Serial.print(poten);
+  Serial.print("/ recalculo: ");
+  Serial.println(medipot);
   
 int mediluz = analogRead(A1); 
-int medipos = map(mediluz, 6, 679, 0, 10);
+int medipos = map(mediluz, 900, 1020, 0, 20);
   
   Serial.print("{poten: ");
+  Serial.print(mediluz);
+  Serial.print("/ recalculo: ");
   Serial.println(medipos);
 
-     if (medipos > 5){
+     if (medipos > medipot){
+  //un parpadeo rojo de inicio
        start();
-         
-         
+  //emision   
       j(); Serial.print("- j -");
       a(); Serial.print(" a -");
       r(); Serial.print(" r -");
@@ -101,6 +110,7 @@ int medipos = map(mediluz, 6, 679, 0, 10);
      strip1.clear();
      strip1.show();  
      }
+     delay(500);
 }
 
 void setup(){
@@ -113,5 +123,4 @@ void setup(){
 void loop()
 {
 sensorluz();
-
 }
