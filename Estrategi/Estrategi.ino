@@ -4,7 +4,7 @@ int poten3 = A3;
 int poten4 = A4;
 int poten5 = A5;
 
-int rele = 2;
+int rele = 11;
 
 int valor1 = 0;
 int valor2 = 0;
@@ -102,7 +102,7 @@ void loop(){
     if (potenled3 == solucion[2]){valor3 = 1;}
         else {valor3 = 0;}
       Serial.print(valor3); 
-    if (potenled4 == solucion[3]){valor4 = 1;}
+    if (potenled4 <= solucion[3]){valor4 = 1;}
         else {valor4 = 0;}
       Serial.print(valor4);
     if (potenled5 <= solucion[4]){valor5 = 1;}
