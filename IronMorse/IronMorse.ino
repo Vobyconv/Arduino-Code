@@ -6,6 +6,8 @@ int tira5 = 5;
 int puntosled = 4;
 int puntosheart1 = 6;
 int puntosheart2 = 15;
+int interruptor = 7;
+int pulsador=0;
 
 Adafruit_NeoPixel strip1 = Adafruit_NeoPixel(puntosled, tira1, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(puntosheart1, tira2, NEO_GRB + NEO_KHZ800);
@@ -68,7 +70,7 @@ void z(){raya(); raya(); punto(); punto(); delay(espera);}
 
 void punto(){
   for (int i = 0; i <= puntosled; i++) {
-    strip1.setPixelColor(i, 10, 255, 10);
+    strip1.setPixelColor(i, 150, 155, 250);
     strip1.show();
   }
   delay(corto);
@@ -79,7 +81,7 @@ void punto(){
 
 void raya(){
   for (int i = 0; i <= puntosled; i++) {
-    strip1.setPixelColor(i, 10, 255, 10);
+    strip1.setPixelColor(i, 150, 155, 250);
     strip1.show();
   }
   delay(largo);
@@ -135,7 +137,6 @@ void snake(){
     
       }
     Serial.println("lucecicas");
-
 }
 
 void sensorluz(){
@@ -171,16 +172,31 @@ void sensorluz(){
      delay(5);
 }
 
-
 void setup(){
   Serial.begin(9600);
   Serial.println("+++ Industrias Stark +++ iniciando a jarvis ...");
+  pinMode(interruptor, INPUT_PULLUP);
   iniled();
-  beatone();
 }
 
 void loop(){
-  beat();
-  snake();
-  sensorluz();
+  pulsador = digitalRead(interruptor);
+  if (pulsador==LOW) { 
+    Serial.println("Core conected");
+    beat();
+    snake();
+    sensorluz();
+  }
+  else{
+    Serial.println("Disconected");
+    strip1.clear();
+    strip1.show(); 
+
+    strip2.clear();
+    strip2.show(); 
+
+    strip5.clear();
+    strip5.show(); 
+    delay(corto);
+    }
 }
