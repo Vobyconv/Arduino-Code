@@ -1,0 +1,43 @@
+#include <Adafruit_NeoPixel.h>
+
+int AnalogPin0 = 0;    // Sensor conectado a Analog 0
+int AnalogPin1 = 1;    // Sensor conectado a Analog 1
+int LEDpin = 13;       // LED del ardu
+int ResRead0;          // La Lectura de la Resistencia por División de Tensión
+int ResRead1;
+int BrilloLED_r;
+int BrilloLED_g;
+int puntosled = 4;
+int tira1 = 2;
+
+Adafruit_NeoPixel strip1 = Adafruit_NeoPixel(puntosled, tira1, NEO_GRB + NEO_KHZ800);
+
+void setup()
+{
+Serial.begin(9600); // Enviaremos la información de depuración a través del Monitor de Serial
+pinMode(LEDpin, OUTPUT);
+
+  strip1.begin();
+  strip1.setBrightness(200);
+  strip1.show();
+}
+void loop()
+{
+ResRead0= analogRead(AnalogPin0); // La Resistencia es igual a la lectura del sensor (Analog 0)
+ResRead1 = analogRead(AnalogPin1); // La Resistencia es igual a la lectura del sensor (Analog 1)
+Serial.print("Lectura Analogica R: = ");
+Serial.print(ResRead0);
+Serial.print(" - G: = ");
+Serial.println(ResRead1);
+
+BrilloLED_r = map(ResRead0, 0, 1023, 0, 255);
+BrilloLED_g = map(ResRead1, 0, 1023, 0, 255);
+// Cambiar el rango de la lectura analógica (0-1023)
+// Utilizamos en analogWrite 8 bits (0-255) configurados en el map
+analogWrite(LEDpin, BrilloLED_r);
+
+  strip1.setPixelColor(1, BrilloLED_r, BrilloLED_g, 10);
+  strip1.show();
+
+delay(10); // “ms” de espera en cada lectura
+}
