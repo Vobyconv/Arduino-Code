@@ -17,7 +17,7 @@ int mediluz = A1;
 int medipot = A2;
 
 int corto = 250;
-int largo = 750;
+int largo = 1000;
 int espera = 1000;
 int vuelta = 20;
 int pulsar = 35;
