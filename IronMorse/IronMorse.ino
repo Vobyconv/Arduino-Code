@@ -3,7 +3,7 @@
 int tira1 = 3;
 int tira2 = 4;
 int tira5 = 5;
-int puntosled = 4;
+int puntosled = 12;
 int puntosheart1 = 6;
 int puntosheart2 = 15;
 int interruptor = 7;
@@ -70,7 +70,7 @@ void z(){raya(); raya(); punto(); punto(); delay(espera);}
 
 void punto(){
   for (int i = 0; i <= puntosled; i++) {
-    strip1.setPixelColor(i, 150, 155, 250);
+    strip1.setPixelColor(i, 120, 125, 250);
     strip1.show();
   }
   delay(corto);
@@ -81,7 +81,7 @@ void punto(){
 
 void raya(){
   for (int i = 0; i <= puntosled; i++) {
-    strip1.setPixelColor(i, 150, 155, 250);
+    strip1.setPixelColor(i, 120, 125, 250);
     strip1.show();
   }
   delay(largo);
@@ -92,13 +92,40 @@ void raya(){
 
 void start(){
  for (int i = 0; i <= 10; i++) {
-  strip1.setPixelColor(i, 150+i*10, 1, 1);
+  strip1.setPixelColor(i, 1+i*10, 200, 1);
   strip1.show();
  }
   delay(1000);
   strip1.clear();
   strip1.show();
   delay(1000);
+}
+
+void disconected(){
+ for (int i = 0; i <= 10; i++) {
+  strip1.setPixelColor(i, 10, 1, 1);
+  strip1.show();
+ }
+  delay(30);
+  
+  for (int i = 0; i <= 10; i++) {
+  strip1.setPixelColor(i, 60, 1, 1);
+  strip1.show();
+ }
+  delay(50);
+   for (int i = 0; i <= 10; i++) {
+  strip1.setPixelColor(i, 10, 200, 1);
+  strip1.show();
+ }
+  delay(3);
+  
+  for (int i = 0; i <= 10; i++) {
+  strip1.setPixelColor(i, 30, 1, 1);
+  strip1.show();
+ }
+  delay(3);
+
+  
 }
 
 void beat(){
@@ -137,18 +164,19 @@ void snake(){
     
       }
     Serial.println("lucecicas");
+
 }
 
 void sensorluz(){
  int poten = analogRead(A2); 
- int medipot = map(poten, 0, 1023, 0, 20);
+ int medipot = map(poten, 0, 1023, 0, 30);
   Serial.print("{potpoten: ");
   Serial.print(poten);
   Serial.print("/ sensibilidad: ");
   Serial.println(medipot);
   
  int mediluz = analogRead(A1); 
- int medipos = map(mediluz, 300, 800, 0, 20);
+ int medipos = map(mediluz, 800, 100, 0, 30);
   Serial.print("} {luz: ");
   Serial.print(mediluz);
   Serial.print("/ medida: ");
@@ -171,6 +199,7 @@ void sensorluz(){
      }
      delay(5);
 }
+
 
 void setup(){
   Serial.begin(9600);
@@ -197,6 +226,7 @@ void loop(){
 
     strip5.clear();
     strip5.show(); 
-    delay(corto);
+    //disconected();
+    delay(100);
     }
 }
