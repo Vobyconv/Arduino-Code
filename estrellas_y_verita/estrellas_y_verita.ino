@@ -10,7 +10,7 @@ int estrellas = 23;
 int pulsaTroll = A0;
 int pulsaVaca = A1;
 int pulsaOso = A2;
-int pulsaHachu = A3;
+int pulsaMuerte = A3;
 
 //tarjeta de audio
 const byte PIN_AUDIO_RST = 6;
@@ -26,15 +26,15 @@ const int numPtsConst = 4;
 const int trollLeds[numPtsConst] = { 1, 7, 13, 19};
 const int vacaLeds[numPtsConst] = { 2, 5, 11, 17,};
 const int osoLeds[numPtsConst] = { 6, 9, 15, 21};
+const int muerteLeds[numPtsConst] = { 3, 8, 14, 20};
 
 Adafruit_NeoPixel stripOjos = Adafruit_NeoPixel(ojosCarona, ojos, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel stripCielo = Adafruit_NeoPixel(estrellas, ledCielo, NEO_GRB + NEO_KHZ800);
 
 //Contadores de victoria
-
-int open1 = 0;
-int open2 = 0;
-int open3 = 0;
+int solucion = 2;
+int solucionNum[8] = { 1, 2, 3, 4, 5, 6, 7, 8};
+int openRele[8] = { 1, 1, 5, 5, 5, 5, 5, 5};
 int openAll = 0;
 
 //inicio de tioras led
@@ -79,12 +79,12 @@ void signoTroll() {
     if (trollLevel >= 6) {
     Serial.print(" / * Trollpush - UP * /");
     trollOn();
-    open1 = 2;
+    solucionNum[0] = openRele[0];
     }
     else {
      Serial.print(" / * Trollpush - DOWN * /");
      trollOff();
-     open1 = 0;
+     solucionNum[0] = 0;
       
     }
 Serial.println(" - Troll OVER - //");
@@ -117,12 +117,12 @@ void signoVaca() {
   if (vacaLevel >= 6) {
     Serial.print(" / * vacaPush - UP  * /");
     vacaOn();
-    open2 = 2;
+    solucionNum[1] = openRele[1];
     }
     else {
     Serial.print(" / * VacaPush - DOWN * /");
     vacaOff();
-    open2 = 0;
+    solucionNum[1] = 0;
     }
   
   Serial.println(" - Vaca OVER - //");
@@ -157,14 +157,55 @@ void signoOso() {
     if (osoLevel >= 6) {
     Serial.print(" / * OsoPush - UP * /");
     osoOn();
-    open3 = 2;
+    solucionNum[2] = openRele[2];
     }
     else {
      Serial.print(" / * OsoPush - DOWN * /");
-     osoOff();
-     open3 = 0; 
+     osoOff(); 
+     solucionNum[2] = 0;
     }
 Serial.println(" - Oso over - //");
+}
+
+
+// La Muerte
+void muerteOn(){
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(muerteLeds[i], 10, 10, 250);
+      stripCielo.show();
+   }
+   Serial.print(" / * MuerteLED - ON * / ");
+}
+
+void muerteOff(){
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(muerteLeds[i], 200, 200, 200);
+      stripCielo.show();
+      }
+  Serial.print(" / * MuerteLed - OFF * / ");
+}
+
+void signoMuerte() {
+  Serial.print("++Nivel Muerte : ");
+    int pulsaMuerte = analogRead(A3);
+    int muerteLevel = map(pulsaMuerte, 0, 1024, 0, 10);
+       
+        Serial.print(pulsaMuerte);
+        Serial.print("/ medida: ");
+        Serial.print(muerteLevel);
+        
+    if (muerteLevel >= 6) {
+    Serial.print(" / * Muertepush - UP * /");
+    muerteOn();
+    solucionNum[3] = openRele[3];
+    }
+    else {
+     Serial.print(" / * Muertepush - DOWN * /");
+     muerteOff();
+     solucionNum[3] = 0;
+      
+    }
+Serial.println(" - Muerte OVER - //");
 }
 
 
@@ -180,13 +221,17 @@ void blink() {
   delay(1000); // Wait for 1000 millisecond(s)
 }
 
+
 void releOpen() {
-  int openAll = open1+open2+open3;
+  int openAll = solucionNum[0]+solucionNum[1]+solucionNum[2]+solucionNum[3];
   Serial.print("openAll: ");
   Serial.println(openAll);
-  if (openAll == 6) {
+  if (openAll == solucion) {
     blink();
     Serial.println("Rele abierto");
+  }
+  else {
+  Serial.println("Rele cerrado");
   }
 }
 
@@ -207,6 +252,7 @@ void constelaciones() {
   signoTroll();
   signoVaca();
   signoOso();
+  signoMuerte();
   }
 
 void setup()
