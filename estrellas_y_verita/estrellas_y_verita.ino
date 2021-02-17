@@ -4,13 +4,16 @@ int ojos = 10;
 int ledCielo = 11;
 int rele = 12;
 int ojosCarona = 12;
-int estrellas = 23;
+int estrellas = 8;
 
 //pines de pulsadores
 int pulsaTroll = A0;
 int pulsaVaca = A1;
 int pulsaOso = A2;
 int pulsaMuerte = A3;
+
+Adafruit_NeoPixel stripOjos = Adafruit_NeoPixel(ojosCarona, ojos, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel stripCielo = Adafruit_NeoPixel(estrellas, ledCielo, NEO_GRB + NEO_KHZ800);
 
 //tarjeta de audio
 const byte PIN_AUDIO_RST = 6;
@@ -23,50 +26,103 @@ const byte PIN_RFID_TX = 3;
 
 //puntitos de las constelaciones
 const int numPtsConst = 4;
-const int trollLeds[numPtsConst] = { 1, 7, 13, 19};
-const int vacaLeds[numPtsConst] = { 2, 5, 11, 17,};
-const int osoLeds[numPtsConst] = { 6, 9, 15, 21};
-const int muerteLeds[numPtsConst] = { 3, 8, 14, 20};
+const int constelLeds0[numPtsConst] = { 1, 9, 17, 25};
+const int constelLeds1[numPtsConst] = { 2, 10, 18, 17};
+const int constelLeds2[numPtsConst] = { 3, 11, 19, 21};
+const int constelLeds3[numPtsConst] = { 4, 12, 20, 20};
+const int constelLeds4[numPtsConst] = { 5, 13, 21, 19};
+const int constelLeds5[numPtsConst] = { 6, 14, 22, 17};
+const int constelLeds6[numPtsConst] = { 7, 15, 23, 21};
+const int constelLeds7[numPtsConst] = { 8, 16, 24, 20};
 
-Adafruit_NeoPixel stripOjos = Adafruit_NeoPixel(ojosCarona, ojos, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel stripCielo = Adafruit_NeoPixel(estrellas, ledCielo, NEO_GRB + NEO_KHZ800);
+void Constel_0_on(){
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(constelLeds0[i], 10, 250, 10);
+      stripCielo.show();
+  }
+      Serial.print(" / * TrollLED - ON * / ");
+}
+
+void Constel_0_off(){
+  int orden = 0;
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(constelLeds0[i], 200, 200, 200);
+      stripCielo.show();
+  }
+      Serial.print(" / * TrollLED - OFF * / ");
+}
+
+void Constel_1_on(){
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(constelLeds1[i], 250, 10, 10);
+      stripCielo.show();
+  }
+      Serial.print(" / * VacaLED - ON * / ");
+}
+
+void Constel_1_off(){
+  int orden = 0;
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(constelLeds1[i], 200, 200, 200);
+      stripCielo.show();
+  }
+      Serial.print(" / * VacaLED - OFF * / ");
+}
+
+void Constel_2_on(){
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(constelLeds2[i], 250, 250, 10);
+      stripCielo.show();
+  }
+      Serial.print(" / * OsoLED - ON * / ");
+}
+
+void Constel_2_off(){
+  int orden = 0;
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(constelLeds2[i], 200, 200, 200);
+      stripCielo.show();
+  }
+      Serial.print(" / * OsoLED - OFF * / ");
+}
+
+void Constel_3_on(){
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(constelLeds3[i], 10, 250, 10);
+      stripCielo.show();
+  }
+      Serial.print(" / * MurteLed - ON * / ");
+}
+
+void Constel_3_off(){
+  int orden = 0;
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(constelLeds3[i], 200, 200, 200);
+      stripCielo.show();
+  }
+      Serial.print(" / * MuerteLED - OFF * / ");
+}
 
 //Contadores de victoria
 int solucion = 2;
-int solucionNum[8] = { 1, 2, 3, 4, 5, 6, 7, 8};
-int openRele[8] = { 1, 1, 5, 5, 5, 5, 5, 5};
+int solucionNum[] = { 1, 2, 3, 4, 5, 6, 7, 8};
+int openRele[] = { true, true, false, false,};// false, false, false, false}
 int openAll = 0;
 
 //inicio de tioras led
 void iniled() {
   stripOjos.begin();
-  stripOjos.setBrightness(200);
+  stripOjos.setBrightness(30);
   stripOjos.show();
   stripOjos.clear();
   
   stripCielo.begin();
-  stripCielo.setBrightness(200);
+  stripCielo.setBrightness(10);
   stripCielo.show();
   stripCielo.clear();
 }
 
-// El Troll
-void trollOn(){
-  for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(trollLeds[i], 10, 250, 10);
-      stripCielo.show();
-   }
-   Serial.print(" / * TrollLED - ON * / ");
-}
-
-void trollOff(){
-  for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(trollLeds[i], 200, 200, 200);
-      stripCielo.show();
-      }
-  Serial.print(" / * TrollLed - OFF * / ");
-}
-
+// El Troll  -------------------------------------
 void signoTroll() {
   Serial.print("++Nivel Troll : ");
     int pulsaTroll = analogRead(A0);
@@ -78,34 +134,18 @@ void signoTroll() {
         
     if (trollLevel >= 6) {
     Serial.print(" / * Trollpush - UP * /");
-    trollOn();
-    solucionNum[0] = openRele[0];
+    Constel_0_on();
+    solucionNum[0] = true;
     }
     else {
      Serial.print(" / * Trollpush - DOWN * /");
-     trollOff();
-     solucionNum[0] = 0;
-      
+     Constel_0_off();
+     solucionNum[0] = false;
     }
 Serial.println(" - Troll OVER - //");
 }
 
-// La Vaca
-void vacaOn(){
-  for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(vacaLeds[i], 250, 10, 10);
-      stripCielo.show();
-      }
-  Serial.print(" / * VacaLed - ON * / ");
-    }
- void vacaOff(){
-  for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(vacaLeds[i], 100, 100, 100);
-      stripCielo.show();
-      }
-   Serial.print(" / * VacaLed - OFF / ");
-    }
-
+// La Vaca  --------------------------------------------
 void signoVaca() {
   Serial.print("++Nivel Vaca  : ");
       
@@ -116,36 +156,18 @@ void signoVaca() {
        Serial.print(vacaLevel);
   if (vacaLevel >= 6) {
     Serial.print(" / * vacaPush - UP  * /");
-    vacaOn();
-    solucionNum[1] = openRele[1];
+    Constel_1_on();
+    solucionNum[1] = true;
     }
     else {
     Serial.print(" / * VacaPush - DOWN * /");
-    vacaOff();
-    solucionNum[1] = 0;
+    Constel_1_off();
+    solucionNum[1] = false;
     }
-  
   Serial.println(" - Vaca OVER - //");
 }
 
-// El Oso
-void osoOn(){
-  for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(osoLeds[i], 250, 200, 10);
-      stripCielo.show();
-            }
-  Serial.print(" / * OsoLed - ON * / ");
-  }
-
-void osoOff(){
-  for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(osoLeds[i], 200, 200, 200);
-     
-      stripCielo.show();
-      }
-  Serial.print(" / * OsoLed - OFF * / ");
-  }
-
+// El Oso  ------------------------------------------------
 void signoOso() {
   Serial.print("++Nivel  Oso  : ");
     int pulsaOso = analogRead(A2);
@@ -156,35 +178,18 @@ void signoOso() {
         
     if (osoLevel >= 6) {
     Serial.print(" / * OsoPush - UP * /");
-    osoOn();
-    solucionNum[2] = openRele[2];
+    Constel_2_on();
+    solucionNum[2] = true;
     }
     else {
      Serial.print(" / * OsoPush - DOWN * /");
-     osoOff(); 
-     solucionNum[2] = 0;
+     Constel_2_off(); 
+     solucionNum[2] = false;
     }
 Serial.println(" - Oso over - //");
 }
 
-
-// La Muerte
-void muerteOn(){
-  for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(muerteLeds[i], 10, 10, 250);
-      stripCielo.show();
-   }
-   Serial.print(" / * MuerteLED - ON * / ");
-}
-
-void muerteOff(){
-  for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(muerteLeds[i], 200, 200, 200);
-      stripCielo.show();
-      }
-  Serial.print(" / * MuerteLed - OFF * / ");
-}
-
+// La Muerte  --------------------------------------------
 void signoMuerte() {
   Serial.print("++Nivel Muerte : ");
     int pulsaMuerte = analogRead(A3);
@@ -196,20 +201,19 @@ void signoMuerte() {
         
     if (muerteLevel >= 6) {
     Serial.print(" / * Muertepush - UP * /");
-    muerteOn();
-    solucionNum[3] = openRele[3];
+    Constel_3_on();
+    solucionNum[3] = true;
     }
     else {
      Serial.print(" / * Muertepush - DOWN * /");
-     muerteOff();
-     solucionNum[3] = 0;
+     Constel_3_off();
+     solucionNum[3] = false;
       
     }
 Serial.println(" - Muerte OVER - //");
 }
 
-
-//Condición de Victoria
+//Condición de Victoria  --------------------------------
 void pinM(){
   pinMode(rele, OUTPUT);
 }
@@ -221,12 +225,25 @@ void blink() {
   delay(1000); // Wait for 1000 millisecond(s)
 }
 
-
 void releOpen() {
   int openAll = solucionNum[0]+solucionNum[1]+solucionNum[2]+solucionNum[3];
   Serial.print("openAll: ");
   Serial.println(openAll);
-  if (openAll == solucion) {
+  int total = 4;
+  int exito = 0;
+  for (int i = 0; i <= total-1 ; i++) {
+    if (solucionNum[i] == openRele[i]) {
+    exito++;
+    Serial.print(i);
+    Serial.println(" // Coincidencia //");
+  }
+  else {
+  Serial.print(i);
+  Serial.println(" // Falla //");
+  }
+  
+  }
+  if (exito == total) {
     blink();
     Serial.println("Rele abierto");
   }
@@ -234,7 +251,6 @@ void releOpen() {
   Serial.println("Rele cerrado");
   }
 }
-
 
 void noche() {
   for (int i = 0; i <= estrellas ; i++) {
@@ -268,5 +284,5 @@ void loop()
 {
   constelaciones();
   releOpen();
-  //delay(500);
+  delay(500);
 }
