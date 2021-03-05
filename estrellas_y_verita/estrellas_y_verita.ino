@@ -113,7 +113,7 @@ void Constel_0_off(){
   }
       Serial.print(" / * TrollLED - OFF * / ");
 }
-
+//--
 void Constel_1_on(){
   for (int i = 0; i <= numPtsConst-1 ; i++) {
       stripCielo.setPixelColor(constelLeds1[i], 250, 10, 10);
@@ -123,14 +123,14 @@ void Constel_1_on(){
 }
 
 void Constel_1_off(){
-  int orden = 0;
+  int orden = 1;
   for (int i = 0; i <= numPtsConst-1 ; i++) {
       stripCielo.setPixelColor(constelLeds1[i], 200, 200, 200);
       stripCielo.show();
   }
       Serial.print(" / * VacaLED - OFF * / ");
 }
-
+//--
 void Constel_2_on(){
   for (int i = 0; i <= numPtsConst-1 ; i++) {
       stripCielo.setPixelColor(constelLeds2[i], 250, 250, 10);
@@ -140,14 +140,14 @@ void Constel_2_on(){
 }
 
 void Constel_2_off(){
-  int orden = 0;
+  int orden = 2;
   for (int i = 0; i <= numPtsConst-1 ; i++) {
       stripCielo.setPixelColor(constelLeds2[i], 200, 200, 200);
       stripCielo.show();
   }
       Serial.print(" / * OsoLED - OFF * / ");
 }
-
+//--
 void Constel_3_on(){
   for (int i = 0; i <= numPtsConst-1 ; i++) {
       stripCielo.setPixelColor(constelLeds3[i], 10, 250, 10);
@@ -157,12 +157,47 @@ void Constel_3_on(){
 }
 
 void Constel_3_off(){
-  int orden = 0;
+  int orden = 3;
   for (int i = 0; i <= numPtsConst-1 ; i++) {
       stripCielo.setPixelColor(constelLeds3[i], 200, 200, 200);
       stripCielo.show();
   }
       Serial.print(" / * MuerteLED - OFF * / ");
+}
+//--
+void Constel_4_on(){
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(constelLeds4[i], 10, 250, 250);
+      stripCielo.show();
+  }
+      Serial.print(" / * FocaLed - ON * / ");
+}
+
+void Constel_4_off(){
+  int orden = 4;
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(constelLeds4[i], 200, 200, 200);
+      stripCielo.show();
+  }
+      Serial.print(" / * FocaLED - OFF * / ");
+}
+
+//--
+void Constel_5_on(){
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(constelLeds5[i], 10, 250, 250);
+      stripCielo.show();
+  }
+      Serial.print(" / * BallenaLed - ON * / ");
+}
+
+void Constel_5_off(){
+  int orden = 5;
+  for (int i = 0; i <= numPtsConst-1 ; i++) {
+      stripCielo.setPixelColor(constelLeds5[i], 200, 200, 200);
+      stripCielo.show();
+  }
+      Serial.print(" / * BallenaLED - OFF * / ");
 }
 
 //Funciones de audio -------------
@@ -279,7 +314,7 @@ void displayAudioLedEffect(int tagIdx)
 //Contadores de victoria
 int solucion = 2;
 int solucionNum[] = { 1, 2, 3, 4, 5, 6, 7, 8};
-int openRele[] = { true, true, false, false,};// false, false, false, false}
+int openRele[] = { true, true, false, false, false, false,};// false, false}
 int openAll = 0;
 
 //inicio de tioras led
@@ -484,6 +519,54 @@ void signoMuerte() {
 Serial.println(" - Muerte OVER - //");
 }
 
+// La Foca  --------------------------------------------
+void signoFoca() {
+  int orden = 4;
+  Serial.print("++Nivel Foca : ");
+    int pulsaFoca = analogRead(A4);
+    int focaLevel = map(pulsaFoca, 0, 1024, 0, 10);
+       
+        Serial.print(pulsaFoca);
+        Serial.print("/ medida: ");
+        Serial.print(focaLevel);
+        
+    if (focaLevel >= 6) {
+    Serial.print(" / * Focapush - UP * /");
+    Constel_4_on();
+    solucionNum[4] = true;
+    }
+    else {
+     Serial.print(" / * Focapush - DOWN * /");
+     Constel_4_off();
+     solucionNum[4] = false;   
+    }
+Serial.println(" - Foca OVER - //");
+}
+
+// La Ballena  --------------------------------------------
+void signoBallena() {
+  int orden = 5;
+  Serial.print("++Nivel Ballena : ");
+    int pulsaBallena = analogRead(A5);
+    int ballenaLevel = map(pulsaBallena, 0, 1024, 0, 10);
+       
+        Serial.print(pulsaBallena);
+        Serial.print("/ medida: ");
+        Serial.print(ballenaLevel);
+        
+    if (ballenaLevel >= 6) {
+    Serial.print(" / * Ballenapush - UP * /");
+    Constel_5_on();
+    solucionNum[5] = true;
+    }
+    else {
+     Serial.print(" / * Ballenapush - DOWN * /");
+     Constel_5_off();
+     solucionNum[5] = false;   
+    }
+Serial.println(" - Ballena OVER - //");
+}
+
 //Condición de Victoria  --------------------------------
 void pinM(){
   pinMode(rele, OUTPUT);
@@ -540,6 +623,8 @@ void constelaciones() {
   signoVaca();
   signoOso();
   signoMuerte();
+  signoFoca();
+  signoBallena();
   }
 
 void setup()
