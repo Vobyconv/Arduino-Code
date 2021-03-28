@@ -1,0 +1,201 @@
+#include <Automaton.h>
+
+//Basicos
+int poten1 = A0;
+int poten2 = A1;
+int rele = 11;
+
+const int SENSOR_NUM = 2;
+
+const int SENSOR_PINS[SENSOR_NUM] = {
+    2, 3
+};
+
+Atm_button sensorButtons[SENSOR_NUM];
+Atm_controller sensorController;
+
+const int RELAY_PIN = 11;
+const unsigned long RELAY_CLOSE_DELAY_MS = 500;
+
+struct ProgramState {
+    unsigned millisSensorsOff;
+};
+
+ProgramState progState;
+
+void initState()
+{
+    progState.millisSensorsOff = 0;
+}
+
+void lockRelay()
+{
+    digitalWrite(RELAY_PIN, LOW);
+    Serial.println(F("rele close"));
+}
+
+void openRelay()
+{
+    digitalWrite(RELAY_PIN, HIGH);
+    Serial.println(F("rele open"));
+}
+
+void initRelay()
+{
+    pinMode(RELAY_PIN, OUTPUT);
+    lockRelay();
+}
+
+void checkRelay()
+{
+    if (progState.millisSensorsOff == 0) {
+        return;
+    }
+
+    unsigned long now = millis();
+
+    unsigned long millisLock = progState.millisSensorsOff
+        + RELAY_CLOSE_DELAY_MS;
+
+    if (now >= millisLock) {
+        lockRelay();
+        progState.millisSensorsOff = 0;
+    }
+}
+
+bool allSensorsActive(int)
+{
+    for (int i = 0; i < SENSOR_NUM; i++) {
+        if (sensorButtons[i].state() == Atm_button::BTN_RELEASE) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void onSensorPress(int idx, int v, int up)
+{
+    Serial.print("Sensor ON #");
+    Serial.println(idx);
+}
+
+void onControllerUp(int, int, int)
+{
+    Serial.println(F("Sensor controller up"));
+    progState.millisSensorsOff = 0;
+    //openRelay();
+    victoriaP();
+}
+
+void onControllerDown(int, int, int)
+{
+    Serial.println(F("Sensor controller down"));
+    progState.millisSensorsOff = millis();
+}
+
+void initSensors()
+{
+    for (int i = 0; i < SENSOR_NUM; i++) {
+        sensorButtons[i]
+            .begin(SENSOR_PINS[i])
+            .onPress(onSensorPress, i);
+    }
+
+    sensorController
+        .begin()
+        .IF(allSensorsActive)
+        .onChange(true, onControllerUp)
+        .onChange(false, onControllerDown);
+}
+
+void blink() {
+  digitalWrite(rele, HIGH);
+  Serial.println("open");
+  delay(1000); // Wait for 1000 millisecond(s)
+  digitalWrite(rele, LOW);
+  Serial.println("close");
+  delay(1000); // Wait for 1000 millisecond(s)
+}
+
+void posiciones() {
+  
+int poten1 = analogRead(A0);
+int poten2 = analogRead(A1);
+  
+int roscaIz = map(poten1, 0, 1023, 1, 6);
+int roscaDe = map(poten2, 0, 1023, 1, 6);
+  
+Serial.print("{posicion:  Izq: ");
+ Serial.print(roscaIz);
+ Serial.print(" - Der: ");
+ Serial.print(roscaDe);
+ Serial.println(" }");
+}
+
+void victoriaP(){
+
+int poten1 = analogRead(A0);
+int poten2 = analogRead(A1);
+  
+int roscaIz = map(poten1, 0, 1023, 1, 6);
+int roscaDe = map(poten2, 0, 1023, 1, 6);
+  
+Serial.print("{posicion:  Izq: ");
+ Serial.print(roscaIz);
+ Serial.print(" - Der: ");
+ Serial.print(roscaDe);
+ Serial.println(" }");
+
+
+  Serial.print("Vitoria  :");
+  int solucion[2] = {2,4}; //soluciones {izquierda , derecha}
+  int valorIz = 0;
+  int valorDe = 0;
+    
+  if (roscaIz == solucion[0]) {
+   valorIz = 5;
+   Serial.print(roscaIz);
+   Serial.print(" / bien    ");
+  }
+  else {valorIz = 0;
+    Serial.print(roscaIz);
+    Serial.print(" mal    ");
+  }
+  
+  if (roscaDe == solucion[1]) {
+   valorDe = 5;
+   Serial.print(roscaDe);
+   Serial.println(" / bien");
+  }
+  else {valorDe = 0;
+    Serial.print(roscaDe);
+    Serial.println(" mal");
+  }
+int completo = valorIz+valorDe;
+  
+  if (completo == 10) {
+  blink();
+  }
+  else {}
+  
+}
+
+
+
+void setup(){
+  Serial.begin(9600);
+  Serial.println("Fortuna Balnearis SPQR...");
+  initState();
+  initSensors();
+  initRelay();
+  
+}
+
+void loop(){
+//victoriaP();
+automaton.run();
+checkRelay();
+//blink();
+  
+}
