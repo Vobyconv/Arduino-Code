@@ -22,20 +22,20 @@ Adafruit_NeoPixel ledFaro = Adafruit_NeoPixel(
     NEO_GRB + NEO_KHZ800);
 
 const byte NUM_READERS = 4;
+const unsigned long RFID_READ_WAIT_MS = 100;
+const unsigned int EMPTY_TOLERANCE = 3;
 
 // RX, TX
-RDM6300 rfid01(2, 3);
-RDM6300 rfid02(4, 5);
-RDM6300 rfid03(6, 7);
-RDM6300 rfid04(8, 9);
+RDM6300 rfid01(2, 3, RFID_READ_WAIT_MS);
+RDM6300 rfid02(4, 5, RFID_READ_WAIT_MS);
+RDM6300 rfid03(6, 7, RFID_READ_WAIT_MS);
+RDM6300 rfid04(8, 9, RFID_READ_WAIT_MS);
 
 RDM6300 rfidReaders[NUM_READERS] = {
     rfid01,
     rfid02,
     rfid03,
     rfid04};
-
-const unsigned int EMPTY_TOLERANCE = 2;
 
 String currentTags[NUM_READERS];
 
