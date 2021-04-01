@@ -1,5 +1,6 @@
 #include "rdm630.h"
 #include <Adafruit_NeoPixel.h>
+#include <neotimer.h>
 
 const int FARO_LED_PIN = 10;
 const int NUM_LEDS_FARO = 3;
@@ -21,9 +22,100 @@ Adafruit_NeoPixel ledFaro = Adafruit_NeoPixel(
     FARO_LED_PIN,
     NEO_GRB + NEO_KHZ800);
 
+Neotimer tempoCorto = Neotimer(200);
+Neotimer tempoLargo = Neotimer(500);
+Neotimer tempoMuyLargo = Neotimer(1000);
+
+const uint8_t ESTADO_COLOR = 10;
+const uint8_t ESTADO_LIMPIAR = 20;
+const uint8_t ESTADO_TEMPO_CORTO = 30;
+const uint8_t ESTADO_TEMPO_LARGO = 40;
+const uint8_t ESTADO_TEMPO_MUY_LARGO = 40;
+
+const uint8_t NUM_COLORES_FLUJO = 16;
+
+// Este array representa el orden en el que se ponen los
+// colores independientemente de los delays que haya por medio
+const uint32_t COLORES_FLUJO[NUM_COLORES_FLUJO] = {
+    BLANCO_FLOJO,
+    BLANCO_FUERTE,
+    BLANCO_FLOJO,
+    BLANCO_FUERTE,
+    BLANCO_FLOJO,
+    BLANCO_FUERTE,
+    ROJO,
+    AZUL,
+    ROJO,
+    VERDE,
+    ROJO,
+    AMARILLO,
+    AZUL,
+    AZUL,
+    VERDE,
+    ROJO};
+
+const uint8_t NUM_ESTADOS_FLUJO = 53;
+
+// El numero de valores ESTADO_COLOR en este array tiene
+// que coincidir con el valor de NUM_COLORES_FLUJO
+const uint8_t FLUJO_EFECTO[NUM_ESTADOS_FLUJO] = {
+    ESTADO_COLOR,
+    ESTADO_TEMPO_CORTO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_CORTO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_CORTO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_CORTO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_CORTO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_CORTO,
+    ESTADO_TEMPO_MUY_LARGO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_LIMPIAR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_LIMPIAR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_LIMPIAR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_LIMPIAR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_LIMPIAR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_LIMPIAR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_LIMPIAR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_LIMPIAR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_LIMPIAR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_COLOR,
+    ESTADO_TEMPO_LARGO,
+    ESTADO_LIMPIAR,
+    ESTADO_TEMPO_LARGO};
+
 const byte NUM_READERS = 4;
 const unsigned long RFID_READ_WAIT_MS = 100;
-const unsigned int EMPTY_TOLERANCE = 3;
+const unsigned int EMPTY_TOLERANCE = 5;
 
 // RX, TX
 RDM6300 rfid01(2, 3, RFID_READ_WAIT_MS);
@@ -51,11 +143,88 @@ typedef struct programState
 {
     bool solved;
     unsigned int emptyReadCount[NUM_READERS];
+    uint8_t indiceFlujo;
+    uint8_t indiceColor;
 } ProgramState;
 
 ProgramState progState = {
     .solved = false,
-    .emptyReadCount = {0, 0, 0, 0}};
+    .emptyReadCount = {0, 0, 0, 0},
+    .indiceFlujo = 0,
+    .indiceColor = 0};
+
+void avanzarEfecto()
+{
+    Serial.println(F("Avanzando efecto LED"));
+
+    progState.indiceFlujo++;
+
+    if (progState.indiceFlujo >= NUM_ESTADOS_FLUJO)
+    {
+        progState.indiceFlujo = 0;
+    }
+
+    tempoCorto.reset();
+    tempoLargo.reset();
+    tempoMuyLargo.reset();
+}
+
+void avanzarColor()
+{
+    Serial.println(F("Avanzando color"));
+
+    progState.indiceColor++;
+
+    if (progState.indiceColor >= NUM_COLORES_FLUJO)
+    {
+        progState.indiceColor = 0;
+    }
+}
+
+void actualizarTempo(Neotimer &elTempo)
+{
+    if (!elTempo.started())
+    {
+        elTempo.start();
+    }
+
+    if (elTempo.done())
+    {
+        avanzarEfecto();
+    }
+}
+
+void actualizarEfectoLed()
+{
+    const uint8_t estadoActual = FLUJO_EFECTO[progState.indiceFlujo];
+
+    if (estadoActual == ESTADO_COLOR)
+    {
+        const uint32_t elColor = COLORES_FLUJO[progState.indiceColor];
+        ledFaro.fill(elColor);
+        ledFaro.show();
+        avanzarEfecto();
+        avanzarColor();
+    }
+    else if (estadoActual == ESTADO_LIMPIAR)
+    {
+        ledFaro.clear();
+        ledFaro.show();
+        avanzarEfecto();
+    }
+    else if (estadoActual == ESTADO_TEMPO_CORTO)
+    {
+        actualizarTempo(tempoCorto);
+    }
+    else if (estadoActual == ESTADO_TEMPO_LARGO)
+    {
+        actualizarTempo(tempoLargo);
+    }
+    else if (estadoActual == ESTADO_TEMPO_MUY_LARGO)
+    {
+        actualizarTempo(tempoMuyLargo);
+    }
+}
 
 void ponerColor(uint32_t elColor, bool apagarDespues)
 {
@@ -94,40 +263,6 @@ void purpura()
 
     Serial.println(F("Purpura: Despues"));
     delay(MUCHO);
-}
-
-void fogonazo()
-{
-    Serial.println(F("Fogonazo"));
-    ponerColor(BLANCO_FLOJO, false);
-    delay(CORTO);
-    ponerColor(BLANCO_FUERTE, false);
-    delay(CORTO);
-    ponerColor(BLANCO_FLOJO, false);
-    delay(CORTO);
-    ponerColor(BLANCO_FUERTE, false);
-    delay(CORTO);
-    ponerColor(BLANCO_FLOJO, false);
-    delay(CORTO);
-    ponerColor(BLANCO_FUERTE, false);
-    delay(CORTO);
-    delay(MUCHO);
-}
-
-void llamada()
-{
-    Serial.println(F("Llamada"));
-    fogonazo();
-    ponerColor(ROJO, true);
-    ponerColor(AZUL, true);
-    ponerColor(ROJO, true);
-    ponerColor(VERDE, true);
-    ponerColor(ROJO, true);
-    ponerColor(AMARILLO, true);
-    ponerColor(AZUL, true);
-    ponerColor(AZUL, true);
-    ponerColor(VERDE, true);
-    ponerColor(ROJO, true);
 }
 
 void victoria()
@@ -266,6 +401,6 @@ void loop()
 
     if (!progState.solved)
     {
-        llamada();
+        actualizarEfectoLed();
     }
 }
