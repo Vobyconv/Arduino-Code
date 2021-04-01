@@ -35,7 +35,7 @@ RDM6300 rfidReaders[NUM_READERS] = {
     rfid03,
     rfid04};
 
-const unsigned int EMPTY_TOLERANCE = 5;
+const unsigned int EMPTY_TOLERANCE = 2;
 
 String currentTags[NUM_READERS];
 
@@ -76,7 +76,7 @@ void ponerColor(uint32_t elColor, bool apagarDespues)
 
 void purpura()
 {
-    Serial.println(F("Victoria: Antes"));
+    Serial.println(F("Purpura: Antes"));
 
     for (int i = 0; i <= NUM_LEDS_FARO; i++)
     {
@@ -92,12 +92,13 @@ void purpura()
         delay(CORTO);
     }
 
-    Serial.println(F("Victoria: Despues"));
+    Serial.println(F("Purpura: Despues"));
     delay(MUCHO);
 }
 
 void fogonazo()
 {
+    Serial.println(F("Fogonazo"));
     ponerColor(BLANCO_FLOJO, false);
     delay(CORTO);
     ponerColor(BLANCO_FUERTE, false);
@@ -115,6 +116,7 @@ void fogonazo()
 
 void llamada()
 {
+    Serial.println(F("Llamada"));
     fogonazo();
     ponerColor(ROJO, true);
     ponerColor(AZUL, true);
@@ -130,7 +132,7 @@ void llamada()
 
 void victoria()
 {
-
+    Serial.println(F("Victoria"));
     ponerColor(BLANCO_FLOJO, false);
     purpura();
     ponerColor(BLANCO_FUERTE, false);
@@ -243,11 +245,6 @@ void updateState()
         Serial.println(F("Solucion: SI"));
         progState.solved = true;
         victoria();
-    }
-    else if (areCurrentTagsValid() == false && progState.solved == true)
-    {
-        Serial.println(F("Solucion: NO"));
-        progState.solved = false;
     }
 }
 
