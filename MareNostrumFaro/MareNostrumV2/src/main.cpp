@@ -180,7 +180,7 @@ void pollRfidReaders()
             currentTags[i].length() &&
             progState.emptyReadCount[i] <= EMPTY_TOLERANCE)
         {
-            Serial.print("Ignoring empty read on reader: ");
+            Serial.print("Ignorando lectura vacia en lector: ");
             Serial.println(i);
             return;
         }
@@ -227,7 +227,7 @@ bool areCurrentTagsValid()
 
 void printCurrentTags()
 {
-    Serial.print("## Current tags :: ");
+    Serial.print("## Tags actuales :: ");
     Serial.println(millis());
 
     for (int i = 0; i < NUM_READERS; i++)
@@ -255,7 +255,7 @@ void setup()
     initRfidReaders();
     initLed();
 
-    Serial.println(">> MareNostrum Faro");
+    Serial.println(">> MareNostrum Faro V2");
 }
 
 void loop()
