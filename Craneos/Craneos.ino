@@ -18,6 +18,8 @@ int sensorC2 = A2;
 int sensorC3 = A3;
 int sensorC4 = A4;
 int sensorC5 = A5;
+int sensorC4 = A6;
+int sensorC5 = A7;
 
 Adafruit_NeoPixel stripCraneos = Adafruit_NeoPixel(puntosCraneos, tiraCraneos, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel stripCraneos2 = Adafruit_NeoPixel(puntosCraneos2, tiraCraneos2, NEO_GRB + NEO_KHZ800);
@@ -186,7 +188,7 @@ void Constel_7_off(){
 //Contadores de victoria
 int solucion = 2;
 int solucionNum[] = { 1, 2, 3, 4, 5, 6, 7, 8};
-int openRele[] = { true, true, false, false, false, false,};// false, false}
+int openRele[] = { true, true, false, false, false, false, false, false};
 int openAll = 0;
 
 //inicio de tioras led
@@ -209,7 +211,7 @@ void craneo0() {
   int orden = 0;
   Serial.print("++Nivel Cr0 : ");
     int sensorC0 = analogRead(A0);
-    int c0Level = map(sensorC0, 0, 1024, 0, 10);
+    int c0Level = map(sensorC0, 0, 900, 10, 0);
        
         Serial.print(sensorC0);
         Serial.print("/ medida: ");
@@ -233,7 +235,7 @@ void craneo1() {
   int orden = 1;
   Serial.print("++Nivel Cr1 : ");
     int sensorC1 = analogRead(A1);
-    int c1Level = map(sensorC1, 0, 1024, 0, 10);
+    int c1Level = map(sensorC1, 0, 900, 10, 0);
        
         Serial.print(sensorC1);
         Serial.print("/ medida: ");
@@ -257,7 +259,7 @@ void craneo2() {
   int orden = 2;
   Serial.print("++Nivel Cr2 : ");
     int sensorC2 = analogRead(A2);
-    int c2Level = map(sensorC2, 0, 1024, 0, 10);
+    int c2Level = map(sensorC2,  0, 900, 10, 0);
        
         Serial.print(sensorC2);
         Serial.print("/ medida: ");
@@ -281,7 +283,7 @@ void craneo3() {
   int orden = 3;
   Serial.print("++Nivel Cr3 : ");
     int sensorC3 = analogRead(A3);
-    int c3Level = map(sensorC3, 0, 1024, 0, 10);
+    int c3Level = map(sensorC3,  0, 900, 10, 0);
        
         Serial.print(sensorC3);
         Serial.print("/ medida: ");
@@ -305,7 +307,7 @@ void craneo4() {
   int orden = 4;
   Serial.print("++Nivel Cr4 : ");
     int sensorC4 = analogRead(A4);
-    int c4Level = map(sensorC4, 0, 1024, 0, 10);
+    int c4Level = map(sensorC4,  0, 900, 10, 0);
        
         Serial.print(sensorC4);
         Serial.print("/ medida: ");
@@ -329,7 +331,7 @@ void craneo5() {
   int orden = 5;
   Serial.print("++Nivel Cr5 : ");
     int sensorC5 = analogRead(A5);
-    int c5Level = map(sensorC5, 0, 1024, 0, 10);
+    int c5Level = map(sensorC5,  0, 900, 10, 0);
       
         Serial.print(sensorC5);
         Serial.print("/ medida: ");
@@ -353,7 +355,7 @@ void craneo6() {
   int orden = 6;
   Serial.print("++Nivel Cr6 : ");
     int sensorC6 = analogRead(A6);
-    int c6Level = map(sensorC6, 0, 1024, 0, 10);
+    int c6Level = map(sensorC6,  0, 900, 10, 0);
        
         Serial.print(sensorC6);
         Serial.print("/ medida: ");
@@ -377,7 +379,7 @@ void craneo7() {
   int orden = 7;
   Serial.print("++Nivel Cr7 : ");
     int sensorC7 = analogRead(A7);
-    int c7Level = map(sensorC7, 0, 1024, 0, 10);
+    int c7Level = map(sensorC7,  0, 900, 10, 0);
        
         Serial.print(sensorC7);
         Serial.print("/ medida: ");
