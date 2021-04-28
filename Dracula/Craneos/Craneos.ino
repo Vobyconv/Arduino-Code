@@ -7,9 +7,9 @@
 int tiraCraneos = 11;
 int tiraCraneos2 = 10;
 int rele = 12;
-int puntosCraneos = 44;
-int puntosCraneos2 = 44;
-int sensibilidad = 6;
+int puntosCraneos = 70;
+int puntosCraneos2 = 70;
+int sensibilidad = 9;
 
 //pines de pulsadores
 int sensorC0 = A0;
@@ -18,30 +18,30 @@ int sensorC2 = A2;
 int sensorC3 = A3;
 int sensorC4 = A4;
 int sensorC5 = A5;
-int sensorC4 = A6;
-int sensorC5 = A7;
+int sensorC6 = A6;
+int sensorC7 = A7;
 
 Adafruit_NeoPixel stripCraneos = Adafruit_NeoPixel(puntosCraneos, tiraCraneos, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel stripCraneos2 = Adafruit_NeoPixel(puntosCraneos2, tiraCraneos2, NEO_GRB + NEO_KHZ800);
 
 
 //puntitos de Calaveras
-const int numLeds = 7;
-const int craneoLed0[numLeds] = { 5, 6, 7, 8, 9, 10, 11};
-const int craneoLed1[numLeds] = { 16, 17, 18, 19, 20, 21, 22};
-const int craneoLed2[numLeds] = { 27, 28, 29, 30, 31, 32, 33};
-const int craneoLed3[numLeds] = { 38, 39, 40, 41, 42, 43, 44};
-const int craneoLed4[numLeds] = { 5, 6, 7, 8, 9, 10, 11};
-const int craneoLed5[numLeds] = { 16, 17, 18, 19, 20, 21, 22};
-const int craneoLed6[numLeds] = { 27, 28, 29, 30, 31, 32, 33};
-const int craneoLed7[numLeds] = { 38, 39, 40, 41, 42, 43, 44};
+const int numLeds = 18;
+const int craneoLed0[numLeds] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
+const int craneoLed1[numLeds] = { 19, 20, 21, 22, 23 ,24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35};
+const int craneoLed2[numLeds] = { 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52};
+const int craneoLed3[numLeds] = { 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69};
+const int craneoLed4[numLeds] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
+const int craneoLed5[numLeds] = { 19, 20, 21, 22, 23 ,24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35};
+const int craneoLed6[numLeds] = { 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52};
+const int craneoLed7[numLeds] = { 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69};
 
 // Funciones de constelaciones
 
 //-- craneo 0
 void Constel_0_on(){
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos.setPixelColor(craneoLed0[i], 10, 250, 10);
+      stripCraneos.setPixelColor(craneoLed0[i], 200, 200, 10);
       stripCraneos.show();
   }
       Serial.print(" / * TrollLED - ON * / ");
@@ -50,7 +50,7 @@ void Constel_0_on(){
 void Constel_0_off(){
   int orden = 0;
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos.setPixelColor(craneoLed0[i], 200, 200, 200);
+      stripCraneos.setPixelColor(craneoLed0[i], 15, 250, 15);
       stripCraneos.show();
   }
       Serial.print(" / * TrollLED - OFF * / ");
@@ -59,7 +59,7 @@ void Constel_0_off(){
 //--
 void Constel_1_on(){
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos.setPixelColor(craneoLed1[i], 10, 250, 10);
+      stripCraneos.setPixelColor(craneoLed1[i], 200, 200, 10);
       stripCraneos.show();
   }
       Serial.print(" / * VacaLED - ON * / ");
@@ -68,7 +68,7 @@ void Constel_1_on(){
 void Constel_1_off(){
   int orden = 1;
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos.setPixelColor(craneoLed1[i], 200, 200, 200);
+      stripCraneos.setPixelColor(craneoLed1[i], 15, 250, 15);
       stripCraneos.show();
   }
       Serial.print(" / * VacaLED - OFF * / ");
@@ -76,7 +76,7 @@ void Constel_1_off(){
 //--
 void Constel_2_on(){
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos.setPixelColor(craneoLed2[i], 10, 250, 10);
+      stripCraneos.setPixelColor(craneoLed2[i], 200, 200, 10);
       stripCraneos.show();
   }
       Serial.print(" / * OsoLED - ON * / ");
@@ -85,7 +85,7 @@ void Constel_2_on(){
 void Constel_2_off(){
   int orden = 2;
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos.setPixelColor(craneoLed2[i], 200, 200, 200);
+      stripCraneos.setPixelColor(craneoLed2[i], 15, 250, 15);
       stripCraneos.show();
   }
       Serial.print(" / * OsoLED - OFF * / ");
@@ -93,7 +93,7 @@ void Constel_2_off(){
 //--
 void Constel_3_on(){
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos.setPixelColor(craneoLed3[i], 10, 250, 10);
+      stripCraneos.setPixelColor(craneoLed3[i], 200, 200, 10);
       stripCraneos.show();
   }
       Serial.print(" / * MurteLed - ON * / ");
@@ -102,7 +102,7 @@ void Constel_3_on(){
 void Constel_3_off(){
   int orden = 3;
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos.setPixelColor(craneoLed3[i], 200, 200, 200);
+      stripCraneos.setPixelColor(craneoLed3[i], 15, 250, 15);
       stripCraneos.show();
   }
       Serial.print(" / * MuerteLED - OFF * / ");
@@ -110,7 +110,7 @@ void Constel_3_off(){
 //--
 void Constel_4_on(){
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos2.setPixelColor(craneoLed4[i], 10, 250, 10);
+      stripCraneos2.setPixelColor(craneoLed4[i], 200, 200, 10);
       stripCraneos2.show();
   }
       Serial.print(" / * FocaLed - ON * / ");
@@ -119,7 +119,7 @@ void Constel_4_on(){
 void Constel_4_off(){
   int orden = 4;
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos2.setPixelColor(craneoLed4[i], 200, 200, 200);
+      stripCraneos2.setPixelColor(craneoLed4[i], 15, 250, 15);
       stripCraneos2.show();
   }
       Serial.print(" / * FocaLED - OFF * / ");
@@ -128,7 +128,7 @@ void Constel_4_off(){
 //--
 void Constel_5_on(){
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos2.setPixelColor(craneoLed5[i], 10, 250, 10);
+      stripCraneos2.setPixelColor(craneoLed5[i], 200, 200, 10);
       stripCraneos2.show();
   }
       Serial.print(" / * BallenaLed - ON * / ");
@@ -137,7 +137,7 @@ void Constel_5_on(){
 void Constel_5_off(){
   int orden = 5;
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos2.setPixelColor(craneoLed5[i], 200, 200, 200);
+      stripCraneos2.setPixelColor(craneoLed5[i], 15, 250, 15);
       stripCraneos2.show();
   }
       Serial.print(" / * BallenaLED - OFF * / ");
@@ -146,7 +146,7 @@ void Constel_5_off(){
 //--
 void Constel_6_on(){
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos2.setPixelColor(craneoLed6[i], 10, 250, 10);
+      stripCraneos2.setPixelColor(craneoLed6[i], 200, 200, 10);
       stripCraneos2.show();
   }
       Serial.print(" / * BallenaLed - ON * / ");
@@ -156,7 +156,7 @@ void Constel_6_on(){
 void Constel_6_off(){
   int orden = 6;
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos2.setPixelColor(craneoLed6[i], 200, 200, 200);
+      stripCraneos2.setPixelColor(craneoLed6[i], 15, 250, 15);
       stripCraneos2.show();
   }
       Serial.print(" / * BallenaLED - OFF * / ");
@@ -165,7 +165,7 @@ void Constel_6_off(){
 //--
 void Constel_7_on(){
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos2.setPixelColor(craneoLed7[i], 10, 250, 10);
+      stripCraneos2.setPixelColor(craneoLed7[i], 200, 200, 10);
       stripCraneos2.show();
   }
       Serial.print(" / * BallenaLed - ON * / ");
@@ -175,7 +175,7 @@ void Constel_7_on(){
 void Constel_7_off(){
   int orden = 7;
   for (int i = 0; i <= numLeds-1 ; i++) {
-      stripCraneos2.setPixelColor(craneoLed7[i], 200, 200, 200);
+      stripCraneos2.setPixelColor(craneoLed7[i], 15, 250, 15);
       stripCraneos2.show();
   }
       Serial.print(" / * BallenaLED - OFF * / ");
@@ -195,12 +195,12 @@ int openAll = 0;
 void iniled() {
 
   stripCraneos.begin();
-  stripCraneos.setBrightness(10);
+  stripCraneos.setBrightness(50);
   stripCraneos.show();
   stripCraneos.clear();
   
   stripCraneos2.begin();
-  stripCraneos2.setBrightness(10);
+  stripCraneos2.setBrightness(50);
   stripCraneos2.show();
   stripCraneos2.clear();
 }
@@ -416,13 +416,13 @@ void releOpen() {
   int openAll = solucionNum[0]+solucionNum[1]+solucionNum[2]+solucionNum[3];
   Serial.print("openAll: ");
   Serial.println(openAll);
-  int total = 5;
+  int total = 8;
   int exito = 0;
   for (int i = 0; i <= total-1 ; i++) {
-    if (solucionNum[i] == openRele[i]) {
-    exito++;
+    if (solucionNum[i] == openRele[i]) {exito++;
     Serial.print(i);
     Serial.println(" // Coincidencia //");
+    
   }
   else {
   Serial.print(i);
@@ -479,6 +479,7 @@ void setup()
   Serial.println("++Starting Cielo++");
   iniled();
   noche();
+  pinM();
  
 }
 
