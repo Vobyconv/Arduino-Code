@@ -17,12 +17,16 @@ int pulsa5 = A5; //Ballena
 int pulsa6 = A6; //Otro
 int pulsa7 = A7; //Pato
 
+//Tira led y colores
 Adafruit_NeoPixel stripCielo = Adafruit_NeoPixel(estrellas, ledCielo, NEO_RGB + NEO_KHZ800);
+
+const uint32_t Azul = Adafruit_NeoPixel::Color(5, 5, 250);
+const uint32_t Blanco = Adafruit_NeoPixel::Color(200, 200, 200);
 
 //Contadores de victoria
 int solucion = 2;
 int solucionNum[] = { 1, 2, 3, 4, 5, 6, 7, 8};
-int openRele[] = { true, true, false, false, false, false,};// false, false}
+int openRele[] = { true, true, false, false, false, false, false, false};
 int openAll = 0;
 
 //puntitos de las constelaciones
@@ -39,7 +43,7 @@ const int constelLeds7[numPtsConst] = { 8, 16, 24, 20};
 // Funciones de constelaciones
 void Constel_0_on(){
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds0[i], 10, 250, 10);
+      stripCielo.setPixelColor(constelLeds0[i], Azul);
       stripCielo.show();
   }
       Serial.print(" / * TrollLED - ON * / ");
@@ -48,7 +52,7 @@ void Constel_0_on(){
 void Constel_0_off(){
   int orden = 0;
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds0[i], 200, 200, 200);
+      stripCielo.setPixelColor(constelLeds0[i], Blanco);
       stripCielo.show();
   }
       Serial.print(" / * TrollLED - OFF * / ");
@@ -56,7 +60,7 @@ void Constel_0_off(){
 //--
 void Constel_1_on(){
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds1[i], 250, 10, 10);
+      stripCielo.setPixelColor(constelLeds1[i], Azul);
       stripCielo.show();
   }
       Serial.print(" / * VacaLED - ON * / ");
@@ -65,7 +69,7 @@ void Constel_1_on(){
 void Constel_1_off(){
   int orden = 1;
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds1[i], 200, 200, 200);
+      stripCielo.setPixelColor(constelLeds1[i], Blanco);
       stripCielo.show();
   }
       Serial.print(" / * VacaLED - OFF * / ");
@@ -73,7 +77,7 @@ void Constel_1_off(){
 //--
 void Constel_2_on(){
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds2[i], 250, 250, 10);
+      stripCielo.setPixelColor(constelLeds2[i], Azul);
       stripCielo.show();
   }
       Serial.print(" / * OsoLED - ON * / ");
@@ -82,7 +86,7 @@ void Constel_2_on(){
 void Constel_2_off(){
   int orden = 2;
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds2[i], 200, 200, 200);
+      stripCielo.setPixelColor(constelLeds2[i], Blanco);
       stripCielo.show();
   }
       Serial.print(" / * OsoLED - OFF * / ");
@@ -90,7 +94,7 @@ void Constel_2_off(){
 //--
 void Constel_3_on(){
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds3[i], 10, 250, 10);
+      stripCielo.setPixelColor(constelLeds3[i], Azul);
       stripCielo.show();
   }
       Serial.print(" / * MurteLed - ON * / ");
@@ -99,7 +103,7 @@ void Constel_3_on(){
 void Constel_3_off(){
   int orden = 3;
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds3[i], 200, 200, 200);
+      stripCielo.setPixelColor(constelLeds3[i], Blanco);
       stripCielo.show();
   }
       Serial.print(" / * MuerteLED - OFF * / ");
@@ -107,7 +111,7 @@ void Constel_3_off(){
 //--
 void Constel_4_on(){
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds4[i], 10, 250, 250);
+      stripCielo.setPixelColor(constelLeds4[i], Azul);
       stripCielo.show();
   }
       Serial.print(" / * FocaLed - ON * / ");
@@ -116,7 +120,7 @@ void Constel_4_on(){
 void Constel_4_off(){
   int orden = 4;
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds4[i], 200, 200, 200);
+      stripCielo.setPixelColor(constelLeds4[i], Blanco);
       stripCielo.show();
   }
       Serial.print(" / * FocaLED - OFF * / ");
@@ -125,7 +129,7 @@ void Constel_4_off(){
 //--
 void Constel_5_on(){
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds5[i], 10, 250, 250);
+      stripCielo.setPixelColor(constelLeds5[i], Azul);
       stripCielo.show();
   }
       Serial.print(" / * BallenaLed - ON * / ");
@@ -134,7 +138,7 @@ void Constel_5_on(){
 void Constel_5_off(){
   int orden = 5;
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds5[i], 200, 200, 200);
+      stripCielo.setPixelColor(constelLeds5[i], Blanco);
       stripCielo.show();
   }
       Serial.print(" / * BallenaLED - OFF * / ");
@@ -142,7 +146,7 @@ void Constel_5_off(){
 
 void Constel_6_on(){
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds6[i], 10, 250, 250);
+      stripCielo.setPixelColor(constelLeds6[i], Azul);
       stripCielo.show();
   }
       Serial.print(" / * OtroLed - ON * / ");
@@ -151,7 +155,7 @@ void Constel_6_on(){
 void Constel_6_off(){
   int orden = 6;
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds6[i], 200, 200, 200);
+      stripCielo.setPixelColor(constelLeds6[i], Blanco);
       stripCielo.show();
   }
       Serial.print(" / * OtroLED - OFF * / ");
@@ -159,7 +163,7 @@ void Constel_6_off(){
 
 void Constel_7_on(){
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds7[i], 10, 250, 250);
+      stripCielo.setPixelColor(constelLeds7[i], Azul);
       stripCielo.show();
   }
       Serial.print(" / * PatoLed - ON * / ");
@@ -168,7 +172,7 @@ void Constel_7_on(){
 void Constel_7_off(){
   int orden = 7;
   for (int i = 0; i <= numPtsConst-1 ; i++) {
-      stripCielo.setPixelColor(constelLeds7[i], 200, 200, 200);
+      stripCielo.setPixelColor(constelLeds7[i], Blanco);
       stripCielo.show();
   }
       Serial.print(" / * PatoLED - OFF * / ");
@@ -327,13 +331,13 @@ void signoOtro() {
   int orden = 6;
   Serial.print("++Nivel Otro : ");
     int pulsa6 = analogRead(A6);
-    int ballenaLevel = map(pulsa6, 0, 1024, 0, 10);
+    int otroLevel = map(pulsa6, 0, 1024, 0, 10);
        
         Serial.print(pulsa6);
         Serial.print("/ medida: ");
-        Serial.print(ballenaLevel);
+        Serial.print(otroLevel);
         
-    if (ballenaLevel >= 6) {
+    if (otroLevel >= 6) {
     Serial.print(" / * Otropush - UP * /");
     Constel_6_on();
     solucionNum[6] = true;
@@ -342,6 +346,30 @@ void signoOtro() {
      Serial.print(" / * Otropush - DOWN * /");
      Constel_6_off();
      solucionNum[6] = false;   
+    }
+Serial.println(" - Otro OVER - //");
+}
+
+// El Pato  --------------------------------------------
+void signoPato() {
+  int orden = 7;
+  Serial.print("++Nivel Pato : ");
+    int pulsa7 = analogRead(A7);
+    int patoLevel = map(pulsa7, 0, 1024, 0, 10);
+       
+        Serial.print(pulsa7);
+        Serial.print("/ medida: ");
+        Serial.print(patoLevel);
+        
+    if (patoLevel >= 6) {
+    Serial.print(" / * Patopush - UP * /");
+    Constel_7_on();
+    solucionNum[7] = true;
+    }
+    else {
+     Serial.print(" / * Otropush - DOWN * /");
+     Constel_7_off();
+     solucionNum[7] = false;   
     }
 Serial.println(" - Otro OVER - //");
 }
@@ -409,22 +437,17 @@ void constelaciones() {
 void setup()
 {
   Serial.begin(9600);
-  sSerial.begin(9600);
   Serial.println("++Starting Cielo++");
-  initAudioPins();
-  resetAudio();
+
   iniled();
   pinM();
   noche();
-  playLedStartupPattern();
-  sSerial.listen();
+
 }
 
 void loop()
 {
-// Boca
-  readTagAndPlayAudio();
-  showStaticLed();
+
 // Cielo 
   constelaciones();
   releOpen();
