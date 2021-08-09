@@ -387,12 +387,12 @@ void blink() {
 }
 
 void releOpen() {
-  int openAll = solucionNum[0]+solucionNum[1]+solucionNum[2]+solucionNum[3];
+  int openAll = solucionNum[0]+solucionNum[1]+solucionNum[2]+solucionNum[3]+solucionNum[4]+solucionNum[5]+solucionNum[6]+solucionNum[7];
   Serial.print("openAll: ");
   Serial.println(openAll);
-  int total = 4;
+  int total = 8;
   int exito = 0;
-  for (int i = 0; i <= total-1 ; i++) {
+  for (int i = 0; i <= total ; i++) {
     if (solucionNum[i] == openRele[i]) {
     exito++;
     Serial.print(i);
@@ -432,6 +432,8 @@ void constelaciones() {
   signoMuerte();
   signoFoca();
   signoBallena();
+  signoOtro();
+  signoPato();
   }
 
 void setup()
