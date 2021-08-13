@@ -16,33 +16,37 @@ Adafruit_TCS34725 rgbSensors[NUM_RGB_SENSORS] = {
     Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X),
     Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X)};
 
+byte gammaTable[256];
+
+void buildGammaTable()
+{
+  for (int i = 0; i < 256; i++)
+  {
+    float x = i;
+    x /= 255;
+    x = pow(x, 2.5);
+    x *= 255;
+    gammaTable[i] = 255 - x;
+  }
+}
+
 void readRgbSensor(int idx)
 {
-  const int lowerLimit = 0;
-  const int upperLimit = 600;
-
-  uint16_t clear, red, green, blue;
+  float red, green, blue;
 
   rgbSensors[idx].setInterrupt(false);
 
   delay(60);
 
-  rgbSensors[idx].getRawData(&red, &green, &blue, &clear);
+  rgbSensors[idx].getRGB(&red, &green, &blue);
   rgbSensors[idx].setInterrupt(true);
 
-  int mappedRed = map(red, lowerLimit, upperLimit, 0, 255);
-  int mappedGreen = map(green, lowerLimit, upperLimit, 0, 255);
-  int mappedBlue = map(blue, lowerLimit, upperLimit, 0, 255);
-  int mappedClear = map(clear, lowerLimit, upperLimit, 0, 255);
-
-  Serial.print("C:\t");
-  Serial.print(mappedClear);
-  Serial.print("\tR:\t");
-  Serial.print(mappedRed);
+  Serial.print("R:\t");
+  Serial.print(int(gammaTable[(int)red]));
   Serial.print("\tG:\t");
-  Serial.print(mappedGreen);
+  Serial.print(int(gammaTable[(int)green]));
   Serial.print("\tB:\t");
-  Serial.println(mappedBlue);
+  Serial.print(int(gammaTable[(int)blue]));
 }
 
 void initRgbSensors()
@@ -72,6 +76,7 @@ void setup(void)
 {
   Serial.begin(9600);
   initRgbSensors();
+  buildGammaTable();
 }
 
 void loop(void)
@@ -81,5 +86,6 @@ void loop(void)
     Serial.print(F("Reading RGB sensor #"));
     Serial.println(i);
     readRgbSensor(i);
+    delay(1000);
   }
 }
