@@ -3,6 +3,7 @@
 #include "Adafruit_TCS34725.h"
 #include <Automaton.h>
 #include <Adafruit_NeoPixel.h>
+#include <WS2812FX.h>
 
 /**
  * RGB sensors.
@@ -32,7 +33,7 @@ const uint16_t LED_RGB_SENSOR_NUMS[NUM_RGB_SENSORS] = {
 const uint16_t LED_RGB_SENSOR_PINS[NUM_RGB_SENSORS] = {
     30, 31, 32, 33};
 
-Adafruit_NeoPixel ledRgbSensorStrips[NUM_RGB_SENSORS] = {
+Adafruit_NeoPixel ledRgbSensors[NUM_RGB_SENSORS] = {
     Adafruit_NeoPixel(
         LED_RGB_SENSOR_NUMS[0],
         LED_RGB_SENSOR_PINS[0],
@@ -50,23 +51,28 @@ Adafruit_NeoPixel ledRgbSensorStrips[NUM_RGB_SENSORS] = {
         LED_RGB_SENSOR_PINS[3],
         NEO_GRB + NEO_KHZ800)};
 
+const uint16_t LED_COALS_NUM = 20;
+const uint8_t LED_COALS_PIN = 34;
+
+WS2812FX ledCoals = WS2812FX(LED_COALS_NUM, LED_COALS_PIN, NEO_GRB + NEO_KHZ800);
+
 /**
  * Colors recognized by the RGB sensor.
  */
 
 const uint16_t CLEAR_CHANNEL_THRESHOLD = 450;
 
-typedef struct rgbColor
+typedef struct colorDefinition
 {
   float redRatio;
   float greenRatio;
   float blueRatio;
   uint32_t ledColor;
-} RgbColor;
+} ColorDefinition;
 
 const uint8_t NUM_RECOGNIZED_COLORS = 4;
 
-const RgbColor RECOGNIZED_COLORS[NUM_RECOGNIZED_COLORS] = {
+const ColorDefinition RECOGNIZED_COLORS[NUM_RECOGNIZED_COLORS] = {
     {.redRatio = 0.8,
      .greenRatio = 0,
      .blueRatio = 0,
@@ -83,6 +89,8 @@ const RgbColor RECOGNIZED_COLORS[NUM_RECOGNIZED_COLORS] = {
      .greenRatio = 0.4,
      .blueRatio = 0,
      .ledColor = Adafruit_NeoPixel::Color(255, 255, 0)}};
+
+const uint8_t RGB_SENSORS_COLOR_KEY[NUM_RGB_SENSORS] = {0, 1, 2, 3};
 
 /**
  * RGB sensor timer.
@@ -101,16 +109,32 @@ int16_t rgbSensorsColorIndex[NUM_RGB_SENSORS];
 typedef struct programState
 {
   int16_t *rgbSensorsColorIndex;
+  bool isRgbSensorsPhaseCompleted;
 } ProgramState;
 
 ProgramState progState;
 
 void initState()
 {
-  for (int i = 0; i < NUM_RGB_SENSORS; i++)
+  for (uint8_t i = 0; i < NUM_RGB_SENSORS; i++)
   {
     progState.rgbSensorsColorIndex[i] = -1;
   }
+
+  progState.isRgbSensorsPhaseCompleted = false;
+}
+
+bool isCurrentRgbSensorsStateValid()
+{
+  for (uint8_t i = 0; i < NUM_RGB_SENSORS; i++)
+  {
+    if (progState.rgbSensorsColorIndex[i] != RGB_SENSORS_COLOR_KEY[i])
+    {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void readRgbSensor(uint8_t sensorIdx)
@@ -144,9 +168,9 @@ void readRgbSensor(uint8_t sensorIdx)
 
   uint32_t sum = rawRed + rawGreen + rawBlue;
 
-  float redRatio = ((float)rawRed / sum) * 255.0;
-  float greenRatio = ((float)rawGreen / sum) * 255.0;
-  float blueRatio = ((float)rawBlue / sum) * 255.0;
+  float redRatio = (float)rawRed / sum;
+  float greenRatio = (float)rawGreen / sum;
+  float blueRatio = (float)rawBlue / sum;
 
   for (uint8_t colorIdx = 0; colorIdx < NUM_RECOGNIZED_COLORS; colorIdx++)
   {
@@ -162,25 +186,41 @@ void readRgbSensor(uint8_t sensorIdx)
   }
 }
 
-void onTimerRgbSensor(int idx, int v, int up)
+void updateLedRgbSensors()
 {
   for (uint8_t i = 0; i < NUM_RGB_SENSORS; i++)
   {
-    readRgbSensor(i);
-  }
-
-  for (uint8_t i = 0; i < NUM_RGB_SENSORS; i++)
-  {
-    ledRgbSensorStrips[i].clear();
+    ledRgbSensors[i].clear();
 
     if (progState.rgbSensorsColorIndex[i] >= 0 &&
         progState.rgbSensorsColorIndex[i] < NUM_RECOGNIZED_COLORS)
     {
       uint32_t theColor = RECOGNIZED_COLORS[progState.rgbSensorsColorIndex[i]].ledColor;
-      ledRgbSensorStrips[i].fill(theColor);
+      ledRgbSensors[i].fill(theColor);
     }
 
-    ledRgbSensorStrips[i].show();
+    ledRgbSensors[i].show();
+  }
+}
+
+void onTimerRgbSensor(int idx, int v, int up)
+{
+  if (progState.isRgbSensorsPhaseCompleted)
+  {
+    return;
+  }
+
+  for (uint8_t i = 0; i < NUM_RGB_SENSORS; i++)
+  {
+    readRgbSensor(i);
+  }
+
+  updateLedRgbSensors();
+
+  if (isCurrentRgbSensorsStateValid())
+  {
+    progState.isRgbSensorsPhaseCompleted = true;
+    ledCoals.start();
   }
 }
 
@@ -195,15 +235,27 @@ void initTimerRgbSensor()
 
 void initLedRgbSensors()
 {
-  const uint8_t defaultBrightness = 180;
+  const uint8_t defaultBrightness = 120;
 
   for (int i = 0; i < NUM_RGB_SENSORS; i++)
   {
-    ledRgbSensorStrips[i].begin();
-    ledRgbSensorStrips[i].setBrightness(defaultBrightness);
-    ledRgbSensorStrips[i].clear();
-    ledRgbSensorStrips[i].show();
+    ledRgbSensors[i].begin();
+    ledRgbSensors[i].setBrightness(defaultBrightness);
+    ledRgbSensors[i].clear();
+    ledRgbSensors[i].show();
   }
+}
+
+void initLedCoals()
+{
+  const uint16_t defaultSpeed = 200;
+  const uint8_t defaultBrightness = 120;
+
+  ledCoals.init();
+  ledCoals.setBrightness(defaultBrightness);
+  ledCoals.setSpeed(defaultSpeed);
+  ledCoals.setMode(FX_MODE_FIRE_FLICKER);
+  ledCoals.stop();
 }
 
 void initRgbSensors()
@@ -236,9 +288,11 @@ void setup(void)
   initRgbSensors();
   initTimerRgbSensor();
   initLedRgbSensors();
+  initLedCoals();
 }
 
 void loop(void)
 {
   automaton.run();
+  ledCoals.service();
 }
