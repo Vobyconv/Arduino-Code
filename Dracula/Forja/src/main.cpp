@@ -4,6 +4,8 @@
 #include <Automaton.h>
 #include <Adafruit_NeoPixel.h>
 #include <WS2812FX.h>
+#include <SoftwareSerial.h>
+#include <SerialRFID.h>
 
 /**
  * RGB sensors.
@@ -101,10 +103,59 @@ const uint32_t TIMER_RGB_MS = 1000;
 Atm_timer timerRgbSensor;
 
 /**
+ * RFID readers.
+ */
+
+const uint8_t NUM_RFID = 5;
+const uint8_t NUM_RFID_SOFT_SERIALS = 2;
+
+SoftwareSerial sSerial4 = SoftwareSerial(3, 2);
+SoftwareSerial sSerial5 = SoftwareSerial(4, 5);
+
+SoftwareSerial softSerials[NUM_RFID_SOFT_SERIALS] = {sSerial4, sSerial5};
+
+SerialRFID rfids[NUM_RFID] = {
+    SerialRFID(Serial1),
+    SerialRFID(Serial2),
+    SerialRFID(Serial3),
+    SerialRFID(sSerial4),
+    SerialRFID(sSerial5)};
+
+Atm_digital tagInRangeDigitals[NUM_RFID];
+
+const uint8_t TAG_IN_RANGE_PINS[NUM_RFID] = {38, 39, 40, 41, 42};
+
+/**
+ * RFID materials.
+ */
+
+enum Materials
+{
+  unknown,
+  gold,
+  silver,
+  bronze
+};
+
+const uint8_t NUM_RECIPES = 3;
+
+const Materials RECIPES[NUM_RECIPES][NUM_RFID] = {
+    {gold, silver, gold, silver, gold},
+    {gold, silver, gold, silver, gold},
+    {gold, silver, gold, silver, gold}};
+
+char tagGold[SIZE_TAG_ID] = "1D00277FBDF8";
+char tagSilver[SIZE_TAG_ID] = "1D00278D53E4";
+char tagBronze[SIZE_TAG_ID] = "1D0027B80A88";
+
+/**
  * Program state.
  */
 
 int16_t rgbSensorsColorIndex[NUM_RGB_SENSORS];
+
+char stateTags[NUM_RFID][SIZE_TAG_ID];
+unsigned long stateTagsMillis[NUM_RFID];
 
 typedef struct programState
 {
@@ -116,12 +167,93 @@ ProgramState progState;
 
 void initState()
 {
+  progState.rgbSensorsColorIndex = rgbSensorsColorIndex;
+
   for (uint8_t i = 0; i < NUM_RGB_SENSORS; i++)
   {
     progState.rgbSensorsColorIndex[i] = -1;
   }
 
+  for (uint8_t i = 0; i < NUM_RFID; i++)
+  {
+    memset(stateTags[i], 0, sizeof(stateTags[i]));
+    stateTagsMillis[i] = 0;
+  }
+
   progState.isRgbSensorsPhaseCompleted = false;
+}
+
+Materials getMaterial(char *theTag)
+{
+  if (SerialRFID::isEqualTag(theTag, tagGold))
+  {
+    return gold;
+  }
+  else if (SerialRFID::isEqualTag(theTag, tagSilver))
+  {
+    return silver;
+  }
+  else if (SerialRFID::isEqualTag(theTag, tagBronze))
+  {
+    return bronze;
+  }
+  else
+  {
+    return unknown;
+  }
+}
+
+void onTagInRangeChange(int idx, int v, int up)
+{
+  bool isInRange = v == 1;
+
+  Serial.print(F("Tag in range #"));
+  Serial.print(idx);
+  Serial.print(F(": "));
+  Serial.println(isInRange);
+
+  memset(stateTags[idx], 0, sizeof(stateTags[idx]));
+}
+
+void initRfidsTagInRange()
+{
+  const uint16_t debounceMs = 100;
+  const bool activeLow = false;
+  const bool pullUp = false;
+
+  for (int i = 0; i < NUM_RFID; i++)
+  {
+    tagInRangeDigitals[i]
+        .begin(TAG_IN_RANGE_PINS[i], debounceMs, activeLow, pullUp)
+        .onChange(onTagInRangeChange, i);
+  }
+}
+
+void readRfid(uint8_t readerIdx)
+{
+  if (readerIdx >= NUM_RFID)
+  {
+    return;
+  }
+
+  char newTag[SIZE_TAG_ID];
+
+  if (rfids[readerIdx].readTag(newTag, sizeof(newTag)))
+  {
+    Serial.print(F("RFID #"));
+    Serial.print(readerIdx);
+    Serial.print(F(":"));
+    Serial.print(newTag);
+    Serial.println();
+    Serial.flush();
+
+    for (int k = 0; k < LEN_TAG_ID; k++)
+    {
+      stateTags[readerIdx][k] = newTag[k];
+    }
+
+    stateTagsMillis[readerIdx] = millis();
+  }
 }
 
 bool isCurrentRgbSensorsStateValid()
@@ -281,14 +413,28 @@ void initRgbSensors()
   }
 }
 
-void setup(void)
+void initSerials()
 {
   Serial.begin(9600);
+  Serial1.begin(9600);
+  Serial2.begin(9600);
+  Serial3.begin(9600);
+
+  for (uint8_t i = 0; i < NUM_RFID_SOFT_SERIALS; i++)
+  {
+    softSerials[i].begin(9600);
+  }
+}
+
+void setup(void)
+{
+  initSerials();
   initState();
   initRgbSensors();
   initTimerRgbSensor();
   initLedRgbSensors();
   initLedCoals();
+  initRfidsTagInRange();
 }
 
 void loop(void)
