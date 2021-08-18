@@ -213,6 +213,11 @@ void initState()
 
 Materials getMaterial(char *theTag)
 {
+  if (strlen(theTag) == 0)
+  {
+    return unknown;
+  }
+
   if (SerialRFID::isEqualTag(theTag, tagGold))
   {
     return gold;
@@ -229,6 +234,33 @@ Materials getMaterial(char *theTag)
   {
     return unknown;
   }
+}
+
+int16_t getCurrentRecipe()
+{
+  for (uint8_t idxRecipe = 0; idxRecipe < NUM_RECIPES; idxRecipe++)
+  {
+    bool recipeOk = true;
+
+    for (uint8_t idxRfid = 0; idxRfid < NUM_RFID; idxRfid++)
+    {
+      Materials theMaterial = getMaterial(stateTags[idxRfid]);
+
+      if (theMaterial == unknown ||
+          theMaterial != RECIPES[idxRecipe][idxRfid])
+      {
+        recipeOk = false;
+        break;
+      }
+    }
+
+    if (recipeOk)
+    {
+      return idxRecipe;
+    }
+  }
+
+  return -1;
 }
 
 void onTagInRangeChange(int idx, int v, int up)
