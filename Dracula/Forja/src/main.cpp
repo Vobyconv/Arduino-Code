@@ -6,6 +6,7 @@
 #include <WS2812FX.h>
 #include <SoftwareSerial.h>
 #include <SerialRFID.h>
+#include <KickSort.h>
 
 /**
  * RGB sensors.
@@ -147,10 +148,10 @@ enum Materials
 
 const uint8_t NUM_RECIPES = 3;
 
-const Materials RECIPES[NUM_RECIPES][NUM_RFID] = {
-    {gold, silver, gold, silver, gold},
-    {gold, silver, gold, silver, gold},
-    {gold, silver, gold, silver, gold}};
+Materials recipes[NUM_RECIPES][NUM_RFID] = {
+    {gold, gold, gold, silver, silver},
+    {gold, gold, gold, bronze, silver},
+    {gold, gold, gold, bronze, bronze}};
 
 char tagGold[SIZE_TAG_ID] = "1D00277FBDF8";
 char tagSilver[SIZE_TAG_ID] = "1D00278D53E4";
@@ -238,23 +239,31 @@ Materials getMaterial(char *theTag)
 
 int16_t getCurrentRecipe()
 {
+  Materials readerMaterials[NUM_RFID];
+
+  for (uint8_t idxRfid = 0; idxRfid < NUM_RFID; idxRfid++)
+  {
+    readerMaterials[idxRfid] = getMaterial(stateTags[idxRfid]);
+  }
+
+  KickSort<Materials>::quickSort(readerMaterials, NUM_RFID);
+
   for (uint8_t idxRecipe = 0; idxRecipe < NUM_RECIPES; idxRecipe++)
   {
-    bool recipeOk = true;
+    KickSort<Materials>::quickSort(recipes[idxRecipe], NUM_RFID);
 
-    for (uint8_t idxRfid = 0; idxRfid < NUM_RFID; idxRfid++)
+    bool isEqual = true;
+
+    for (uint8_t i = 0; i < NUM_RFID; i++)
     {
-      Materials theMaterial = getMaterial(stateTags[idxRfid]);
-
-      if (theMaterial == unknown ||
-          theMaterial != RECIPES[idxRecipe][idxRfid])
+      if (recipes[idxRecipe][i] != readerMaterials[i])
       {
-        recipeOk = false;
+        isEqual = false;
         break;
       }
     }
 
-    if (recipeOk)
+    if (isEqual)
     {
       return idxRecipe;
     }
