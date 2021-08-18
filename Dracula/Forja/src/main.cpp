@@ -64,17 +64,17 @@ WS2812FX ledCoals = WS2812FX(LED_COALS_NUM, LED_COALS_PIN, NEO_GRB + NEO_KHZ800)
 
 const uint16_t CLEAR_CHANNEL_THRESHOLD = 450;
 
-typedef struct colorDefinition
+typedef struct colorDef
 {
   float redRatio;
   float greenRatio;
   float blueRatio;
   uint32_t ledColor;
-} ColorDefinition;
+} ColorDef;
 
 const uint8_t NUM_RECOGNIZED_COLORS = 4;
 
-const ColorDefinition RECOGNIZED_COLORS[NUM_RECOGNIZED_COLORS] = {
+const ColorDef RECOGNIZED_COLORS[NUM_RECOGNIZED_COLORS] = {
     {.redRatio = 0.8,
      .greenRatio = 0,
      .blueRatio = 0,
@@ -112,7 +112,15 @@ const uint8_t NUM_RFID_SOFT_SERIALS = 2;
 SoftwareSerial sSerial4 = SoftwareSerial(3, 2);
 SoftwareSerial sSerial5 = SoftwareSerial(4, 5);
 
-SoftwareSerial softSerials[NUM_RFID_SOFT_SERIALS] = {sSerial4, sSerial5};
+typedef struct softSerialDef
+{
+  uint8_t rfidIdx;
+  SoftwareSerial sSerial;
+} SoftSerialDef;
+
+SoftSerialDef softSerials[NUM_RFID_SOFT_SERIALS] = {
+    {.rfidIdx = 3, .sSerial = sSerial4},
+    {.rfidIdx = 4, .sSerial = sSerial5}};
 
 SerialRFID rfids[NUM_RFID] = {
     SerialRFID(Serial1),
@@ -161,12 +169,31 @@ typedef struct programState
 {
   int16_t *rgbSensorsColorIndex;
   bool isRgbSensorsPhaseCompleted;
+  bool usedRecipe;
 } ProgramState;
 
 ProgramState progState;
 
+void validateSoftSerialDefs()
+{
+  for (uint8_t i = 0; i < NUM_RFID_SOFT_SERIALS; i++)
+  {
+    if (softSerials[i].rfidIdx >= NUM_RFID)
+    {
+      Serial.println(F("Invalid RFID reader index"));
+
+      while (true)
+      {
+        delay(1000);
+      }
+    }
+  }
+}
+
 void initState()
 {
+  validateSoftSerialDefs();
+
   progState.rgbSensorsColorIndex = rgbSensorsColorIndex;
 
   for (uint8_t i = 0; i < NUM_RGB_SENSORS; i++)
@@ -181,6 +208,7 @@ void initState()
   }
 
   progState.isRgbSensorsPhaseCompleted = false;
+  progState.usedRecipe = false;
 }
 
 Materials getMaterial(char *theTag)
@@ -212,12 +240,30 @@ void onTagInRangeChange(int idx, int v, int up)
   Serial.print(F(": "));
   Serial.println(isInRange);
 
+  if (isInRange)
+  {
+    return;
+  }
+
   memset(stateTags[idx], 0, sizeof(stateTags[idx]));
+
+  progState.usedRecipe = false;
+
+  for (uint8_t i = 0; i < NUM_RFID_SOFT_SERIALS; i++)
+  {
+    if (softSerials[i].rfidIdx == idx)
+    {
+      Serial.print(F("Listening on SoftSerial #"));
+      Serial.println(idx);
+
+      softSerials[i].sSerial.listen();
+    }
+  }
 }
 
 void initRfidsTagInRange()
 {
-  const uint16_t debounceMs = 100;
+  const uint16_t debounceMs = 150;
   const bool activeLow = false;
   const bool pullUp = false;
 
@@ -422,7 +468,7 @@ void initSerials()
 
   for (uint8_t i = 0; i < NUM_RFID_SOFT_SERIALS; i++)
   {
-    softSerials[i].begin(9600);
+    softSerials[i].sSerial.begin(9600);
   }
 }
 
