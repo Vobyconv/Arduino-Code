@@ -3,9 +3,10 @@
 #include <SoftwareSerial.h>
 
 //Ordenes basicas ---------------------
-int ledCielo = 11;
+int ledCielo = 9;
 int rele = 12;
-int estrellas = 8;
+int estrellas = 120;
+int wait = 200;
 
 //pines de pulsadores
 int pulsa0 = A0; //Troll
@@ -30,15 +31,15 @@ int openRele[] = { true, true, false, false, false, false, false, false};
 int openAll = 0;
 
 //puntitos de las constelaciones
-const int numPtsConst = 4;
-const int constelLeds0[numPtsConst] = { 1, 9, 17, 19};
-const int constelLeds1[numPtsConst] = { 2, 10, 18, 17};
-const int constelLeds2[numPtsConst] = { 3, 11, 19, 21};
-const int constelLeds3[numPtsConst] = { 4, 12, 20, 20};
-const int constelLeds4[numPtsConst] = { 5, 13, 21, 19};
-const int constelLeds5[numPtsConst] = { 6, 14, 22, 17};
-const int constelLeds6[numPtsConst] = { 7, 15, 23, 21};
-const int constelLeds7[numPtsConst] = { 8, 16, 24, 20};
+const int numPtsConst = 8;
+const int constelLeds0[numPtsConst] = { 0, 1, 2, 3, 4, 5, 6, 7};
+const int constelLeds1[numPtsConst] = { 19, 20, 21, 22, 23, 24, 25, 26};
+const int constelLeds2[numPtsConst] = { 38, 39, 40, 41, 42, 43, 44, 45};
+const int constelLeds3[numPtsConst] = { 52, 53, 54, 55, 56, 57, 58, 59};
+const int constelLeds4[numPtsConst] = { 68, 69, 70, 71, 72, 73, 74, 75};
+const int constelLeds5[numPtsConst] = { 81, 82, 83, 84, 85, 86, 87, 88};
+const int constelLeds6[numPtsConst] = { 103, 104, 105, 106, 107, 108, 109, 110};
+const int constelLeds7[numPtsConst] = { 120, 121, 122, 123, 124, 125, 126, 127};
 
 // Funciones de constelaciones
 void Constel_0_on(){
@@ -178,11 +179,12 @@ void Constel_7_off(){
       Serial.print(" / * PatoLED - OFF * / ");
 }
 
-//inicio de tioras led
+//inicio de tiras led
 void iniled() {
   stripCielo.begin();
-  stripCielo.setBrightness(10);
+  stripCielo.setBrightness(15);
   stripCielo.show();
+  delay(wait);
   stripCielo.clear();
 }
 
