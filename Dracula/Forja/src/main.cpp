@@ -7,6 +7,7 @@
 #include <SoftwareSerial.h>
 #include <SerialRFID.h>
 #include <KickSort.h>
+#include <CircularBuffer.h>
 
 /**
  * RGB sensors.
@@ -37,22 +38,10 @@ const uint16_t LED_RGB_SENSOR_PINS[NUM_RGB_SENSORS] = {
     30, 31, 32, 33};
 
 Adafruit_NeoPixel ledRgbSensors[NUM_RGB_SENSORS] = {
-    Adafruit_NeoPixel(
-        LED_RGB_SENSOR_NUMS[0],
-        LED_RGB_SENSOR_PINS[0],
-        NEO_GRB + NEO_KHZ800),
-    Adafruit_NeoPixel(
-        LED_RGB_SENSOR_NUMS[1],
-        LED_RGB_SENSOR_PINS[1],
-        NEO_GRB + NEO_KHZ800),
-    Adafruit_NeoPixel(
-        LED_RGB_SENSOR_NUMS[2],
-        LED_RGB_SENSOR_PINS[2],
-        NEO_GRB + NEO_KHZ800),
-    Adafruit_NeoPixel(
-        LED_RGB_SENSOR_NUMS[3],
-        LED_RGB_SENSOR_PINS[3],
-        NEO_GRB + NEO_KHZ800)};
+    Adafruit_NeoPixel(LED_RGB_SENSOR_NUMS[0], LED_RGB_SENSOR_PINS[0], NEO_GRB + NEO_KHZ800),
+    Adafruit_NeoPixel(LED_RGB_SENSOR_NUMS[1], LED_RGB_SENSOR_PINS[1], NEO_GRB + NEO_KHZ800),
+    Adafruit_NeoPixel(LED_RGB_SENSOR_NUMS[2], LED_RGB_SENSOR_PINS[2], NEO_GRB + NEO_KHZ800),
+    Adafruit_NeoPixel(LED_RGB_SENSOR_NUMS[3], LED_RGB_SENSOR_PINS[3], NEO_GRB + NEO_KHZ800)};
 
 const uint16_t LED_COALS_NUM = 20;
 const uint8_t LED_COALS_PIN = 34;
@@ -132,7 +121,12 @@ SerialRFID rfids[NUM_RFID] = {
 
 Atm_digital tagInRangeDigitals[NUM_RFID];
 
-const uint8_t TAG_IN_RANGE_PINS[NUM_RFID] = {38, 39, 40, 41, 42};
+const uint8_t TAG_IN_RANGE_PINS[NUM_RFID] = {
+    38, 39, 40, 41, 42};
+
+const uint32_t TIMER_RFID_MS = 300;
+
+Atm_timer timerRfid;
 
 /**
  * RFID materials.
@@ -158,6 +152,44 @@ char tagSilver[SIZE_TAG_ID] = "1D00278D53E4";
 char tagBronze[SIZE_TAG_ID] = "1D0027B80A88";
 
 /**
+ * Knock sensors.
+ */
+
+const uint8_t NUM_KNOCK_SENSORS = 2;
+const uint8_t KNOCK_PINS[NUM_KNOCK_SENSORS] = {A2, A3};
+const int KNOCK_SAMPLERATE = 50;
+const int KNOCK_RANGE_MIN = 0;
+const int KNOCK_RANGE_MAX = 100;
+const int KNOCK_THRESHOLD = 20;
+
+const uint8_t SIZE_KNOCK_PATTERN = 5;
+
+const uint8_t KNOCK_PATTERNS[NUM_RECIPES][SIZE_KNOCK_PATTERN] = {
+    {0, 0, 0, 0, 0},
+    {1, 1, 1, 1, 1},
+    {0, 1, 0, 1, 0}};
+
+Atm_analog knockAnalogs[NUM_KNOCK_SENSORS];
+Atm_controller knockControllers[NUM_KNOCK_SENSORS];
+
+/**
+ * LED strips for the knock sensors.
+ */
+
+const uint16_t LED_KNOCK_NUMS[NUM_KNOCK_SENSORS] = {10, 10};
+const uint16_t LED_KNOCK_PINS[NUM_KNOCK_SENSORS] = {4, 5};
+
+Adafruit_NeoPixel ledKnockSensors[NUM_KNOCK_SENSORS] = {
+    Adafruit_NeoPixel(LED_KNOCK_NUMS[0], LED_KNOCK_PINS[0], NEO_GRB + NEO_KHZ800),
+    Adafruit_NeoPixel(LED_KNOCK_NUMS[1], LED_KNOCK_PINS[1], NEO_GRB + NEO_KHZ800)};
+
+const uint32_t LED_KNOCK_COLORS[NUM_KNOCK_SENSORS] = {
+    Adafruit_NeoPixel::Color(0, 0, 255),
+    Adafruit_NeoPixel::Color(255, 255, 0)};
+
+const unsigned long LED_KNOCK_DELAY_MS = 20;
+
+/**
  * Program state.
  */
 
@@ -166,11 +198,14 @@ int16_t rgbSensorsColorIndex[NUM_RGB_SENSORS];
 char stateTags[NUM_RFID][SIZE_TAG_ID];
 unsigned long stateTagsMillis[NUM_RFID];
 
+const uint16_t KNOCK_BUF_SIZE = 30;
+CircularBuffer<int, KNOCK_BUF_SIZE> knockHistory;
+
 typedef struct programState
 {
   int16_t *rgbSensorsColorIndex;
   bool isRgbSensorsPhaseCompleted;
-  bool usedRecipe;
+  uint8_t currentRecipe;
 } ProgramState;
 
 ProgramState progState;
@@ -191,9 +226,29 @@ void validateSoftSerialDefs()
   }
 }
 
+void validateKnockPatterns()
+{
+  for (uint8_t idxRecipe = 0; idxRecipe < NUM_RECIPES; idxRecipe++)
+  {
+    for (uint8_t i = 0; i < SIZE_KNOCK_PATTERN; i++)
+    {
+      if (KNOCK_PATTERNS[idxRecipe][i] >= NUM_KNOCK_SENSORS)
+      {
+        Serial.println(F("Invalid knock pattern value"));
+
+        while (true)
+        {
+          delay(1000);
+        }
+      }
+    }
+  }
+}
+
 void initState()
 {
   validateSoftSerialDefs();
+  validateKnockPatterns();
 
   progState.rgbSensorsColorIndex = rgbSensorsColorIndex;
 
@@ -209,7 +264,7 @@ void initState()
   }
 
   progState.isRgbSensorsPhaseCompleted = false;
-  progState.usedRecipe = false;
+  progState.currentRecipe = 0;
 }
 
 Materials getMaterial(char *theTag)
@@ -288,8 +343,6 @@ void onTagInRangeChange(int idx, int v, int up)
 
   memset(stateTags[idx], 0, sizeof(stateTags[idx]));
 
-  progState.usedRecipe = false;
-
   for (uint8_t i = 0; i < NUM_RFID_SOFT_SERIALS; i++)
   {
     if (softSerials[i].rfidIdx == idx)
@@ -341,6 +394,32 @@ void readRfid(uint8_t readerIdx)
 
     stateTagsMillis[readerIdx] = millis();
   }
+}
+
+void onTimerRfid(int idx, int v, int up)
+{
+  for (uint8_t i = 0; i < NUM_RFID; i++)
+  {
+    readRfid(i);
+  }
+
+  int16_t currRecipe = getCurrentRecipe();
+
+  if (currRecipe == progState.currentRecipe)
+  {
+    Serial.print(F("Read recipe #"));
+    Serial.println(currRecipe);
+    progState.currentRecipe++;
+  }
+}
+
+void initTimerRfid()
+{
+  timerRfid
+      .begin(TIMER_RFID_MS)
+      .repeat(-1)
+      .onTimer(onTimerRfid)
+      .start();
 }
 
 bool isCurrentRgbSensorsStateValid()
@@ -500,6 +579,53 @@ void initRgbSensors()
   }
 }
 
+void initLedKnockSensors()
+{
+  const uint8_t defaultBrightness = 150;
+
+  for (int i = 0; i < NUM_KNOCK_SENSORS; i++)
+  {
+    ledKnockSensors[i].begin();
+    ledKnockSensors[i].setBrightness(defaultBrightness);
+    ledKnockSensors[i].clear();
+    ledKnockSensors[i].show();
+  }
+}
+
+void onKnock(int idx, int v, int up)
+{
+  Serial.print(F("Knock #"));
+  Serial.println(idx);
+
+  if (!progState.isRgbSensorsPhaseCompleted)
+  {
+    return;
+  }
+
+  knockHistory.push(idx);
+
+  ledKnockSensors[idx].fill(LED_KNOCK_COLORS[idx]);
+  ledKnockSensors[idx].show();
+  delay(LED_KNOCK_DELAY_MS);
+  ledKnockSensors[idx].clear();
+  ledKnockSensors[idx].show();
+}
+
+void initKnockSensors()
+{
+  for (uint8_t i = 0; i < NUM_KNOCK_SENSORS; i++)
+  {
+    knockAnalogs[i]
+        .begin(KNOCK_PINS[i], KNOCK_SAMPLERATE)
+        .range(KNOCK_RANGE_MIN, KNOCK_RANGE_MAX);
+
+    knockControllers[i]
+        .begin()
+        .IF(knockAnalogs[i], '>', KNOCK_THRESHOLD)
+        .onChange(true, onKnock, i);
+  }
+}
+
 void initSerials()
 {
   Serial.begin(9600);
@@ -522,6 +648,9 @@ void setup(void)
   initLedRgbSensors();
   initLedCoals();
   initRfidsTagInRange();
+  initTimerRfid();
+  initKnockSensors();
+  initLedKnockSensors();
 }
 
 void loop(void)
