@@ -190,6 +190,17 @@ const uint32_t LED_KNOCK_COLORS[NUM_KNOCK_SENSORS] = {
 const unsigned long LED_KNOCK_DELAY_MS = 50;
 
 /**
+ * LED strip to signal progress.
+ */
+
+const uint16_t LED_PROGRESS_NUM = 20;
+const uint16_t LED_PROGRESS_PIN = 6;
+
+Adafruit_NeoPixel ledProgress = Adafruit_NeoPixel(LED_PROGRESS_NUM, LED_PROGRESS_PIN, NEO_GRB + NEO_KHZ800);
+
+const uint32_t LED_PROGRESS_COLOR = Adafruit_NeoPixel::Color(255, 255, 0);
+
+/**
  * General-purpose timer.
  */
 
@@ -281,6 +292,26 @@ void initState()
   {
     progState.ledKnockSensorsFillMillis[i] = 0;
   }
+}
+
+void updateLedProgress()
+{
+  uint16_t numPerPhase = floor((float)LED_PROGRESS_NUM / NUM_RECIPES);
+  uint16_t count = min(numPerPhase * progState.currentRecipe, ledProgress.numPixels());
+
+  ledProgress.clear();
+  ledProgress.fill(LED_PROGRESS_COLOR, 0, count);
+  ledProgress.show();
+}
+
+void initLedProgress()
+{
+  const uint8_t defaultBrightness = 120;
+
+  ledProgress.begin();
+  ledProgress.setBrightness(defaultBrightness);
+  ledProgress.clear();
+  ledProgress.show();
 }
 
 Materials getMaterial(char *theTag)
@@ -412,6 +443,17 @@ void readRfid(uint8_t readerIdx)
   }
 }
 
+void advanceMaterialsRecipeStep()
+{
+  uint8_t nextRecipe = progState.currentRecipe + 1;
+
+  Serial.print(F("Advancing to materials recipe #"));
+  Serial.println(nextRecipe);
+
+  progState.currentRecipe = nextRecipe;
+  updateLedProgress();
+}
+
 void onTimerRfid(int idx, int v, int up)
 {
   for (uint8_t i = 0; i < NUM_RFID; i++)
@@ -423,9 +465,7 @@ void onTimerRfid(int idx, int v, int up)
 
   if (currRecipe == progState.currentRecipe)
   {
-    Serial.print(F("Read recipe #"));
-    Serial.println(currRecipe);
-    progState.currentRecipe++;
+    advanceMaterialsRecipeStep();
   }
 }
 
@@ -701,6 +741,9 @@ void setup(void)
   initKnockSensors();
   initLedKnockSensors();
   initTimerGeneral();
+  initLedProgress();
+
+  Serial.println(F("Starting Dracula Forge program"));
 }
 
 void loop(void)
