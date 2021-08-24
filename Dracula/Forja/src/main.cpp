@@ -187,7 +187,15 @@ const uint32_t LED_KNOCK_COLORS[NUM_KNOCK_SENSORS] = {
     Adafruit_NeoPixel::Color(0, 0, 255),
     Adafruit_NeoPixel::Color(255, 255, 0)};
 
-const unsigned long LED_KNOCK_DELAY_MS = 20;
+const unsigned long LED_KNOCK_DELAY_MS = 50;
+
+/**
+ * General-purpose timer.
+ */
+
+const uint32_t TIMER_GENERAL_MS = 50;
+
+Atm_timer timerGeneral;
 
 /**
  * Program state.
@@ -201,11 +209,14 @@ unsigned long stateTagsMillis[NUM_RFID];
 const uint16_t KNOCK_BUF_SIZE = 30;
 CircularBuffer<int, KNOCK_BUF_SIZE> knockHistory;
 
+unsigned long ledKnockSensorsFillMillis[NUM_KNOCK_SENSORS];
+
 typedef struct programState
 {
   int16_t *rgbSensorsColorIndex;
   bool isRgbSensorsPhaseCompleted;
   uint8_t currentRecipe;
+  unsigned long *ledKnockSensorsFillMillis;
 } ProgramState;
 
 ProgramState progState;
@@ -265,6 +276,11 @@ void initState()
 
   progState.isRgbSensorsPhaseCompleted = false;
   progState.currentRecipe = 0;
+
+  for (uint8_t i = 0; i < NUM_KNOCK_SENSORS; i++)
+  {
+    progState.ledKnockSensorsFillMillis[i] = 0;
+  }
 }
 
 Materials getMaterial(char *theTag)
@@ -606,9 +622,8 @@ void onKnock(int idx, int v, int up)
 
   ledKnockSensors[idx].fill(LED_KNOCK_COLORS[idx]);
   ledKnockSensors[idx].show();
-  delay(LED_KNOCK_DELAY_MS);
-  ledKnockSensors[idx].clear();
-  ledKnockSensors[idx].show();
+
+  progState.ledKnockSensorsFillMillis[idx] = millis();
 }
 
 void initKnockSensors()
@@ -626,16 +641,50 @@ void initKnockSensors()
   }
 }
 
+void onTimerGeneral(int idx, int v, int up)
+{
+  unsigned long now = millis();
+
+  for (uint8_t idxKnock = 0; idxKnock < NUM_KNOCK_SENSORS; idxKnock++)
+  {
+    if (progState.ledKnockSensorsFillMillis[idxKnock] == 0 ||
+        progState.ledKnockSensorsFillMillis[idxKnock] > now)
+    {
+      continue;
+    }
+
+    unsigned long diffMs = now - progState.ledKnockSensorsFillMillis[idxKnock];
+
+    if (diffMs >= LED_KNOCK_DELAY_MS)
+    {
+      ledKnockSensors[idxKnock].clear();
+      ledKnockSensors[idxKnock].show();
+      progState.ledKnockSensorsFillMillis[idxKnock] = 0;
+    }
+  }
+}
+
+void initTimerGeneral()
+{
+  timerGeneral
+      .begin(TIMER_GENERAL_MS)
+      .repeat(-1)
+      .onTimer(onTimerGeneral)
+      .start();
+}
+
 void initSerials()
 {
-  Serial.begin(9600);
-  Serial1.begin(9600);
-  Serial2.begin(9600);
-  Serial3.begin(9600);
+  const int bauds = 9600;
+
+  Serial.begin(bauds);
+  Serial1.begin(bauds);
+  Serial2.begin(bauds);
+  Serial3.begin(bauds);
 
   for (uint8_t i = 0; i < NUM_RFID_SOFT_SERIALS; i++)
   {
-    softSerials[i].sSerial.begin(9600);
+    softSerials[i].sSerial.begin(bauds);
   }
 }
 
@@ -651,6 +700,7 @@ void setup(void)
   initTimerRfid();
   initKnockSensors();
   initLedKnockSensors();
+  initTimerGeneral();
 }
 
 void loop(void)
