@@ -209,6 +209,15 @@ const uint32_t TIMER_GENERAL_MS = 50;
 Atm_timer timerGeneral;
 
 /**
+ * Audio FX.
+ */
+
+const uint8_t PIN_AUDIO_ACT = 8;
+const uint8_t PIN_AUDIO_RST = 9;
+const uint8_t AUDIO_TRACK_PINS[NUM_KNOCK_SENSORS] = {10, 11};
+const unsigned long AUDIO_PLAY_DELAY_MS = 200;
+
+/**
  * Program state.
  */
 
@@ -228,6 +237,7 @@ typedef struct programState
   bool isRgbSensorsPhaseCompleted;
   uint8_t currentRecipe;
   unsigned long *ledKnockSensorsFillMillis;
+  unsigned long audioPlayMillis;
 } ProgramState;
 
 ProgramState progState;
@@ -287,11 +297,65 @@ void initState()
 
   progState.isRgbSensorsPhaseCompleted = false;
   progState.currentRecipe = 0;
+  progState.audioPlayMillis = 0;
 
   for (uint8_t i = 0; i < NUM_KNOCK_SENSORS; i++)
   {
     progState.ledKnockSensorsFillMillis[i] = 0;
   }
+}
+
+bool isTrackPlaying()
+{
+  return progState.audioPlayMillis > 0 || digitalRead(PIN_AUDIO_ACT) == LOW;
+}
+
+void playTrack(uint8_t trackPin)
+{
+  if (isTrackPlaying())
+  {
+    Serial.println(F("Skipping: Audio still playing"));
+    return;
+  }
+
+  digitalWrite(trackPin, LOW);
+  pinMode(trackPin, OUTPUT);
+
+  progState.audioPlayMillis = millis();
+}
+
+void initAudioPins()
+{
+  for (uint8_t i = 0; i < NUM_KNOCK_SENSORS; i++)
+  {
+    pinMode(AUDIO_TRACK_PINS[i], INPUT);
+  }
+
+  pinMode(PIN_AUDIO_ACT, INPUT);
+  pinMode(PIN_AUDIO_RST, INPUT);
+}
+
+void resetAudio()
+{
+  const unsigned long resetDelayMs = 100;
+  const unsigned long waitDelayMs = 2000;
+
+  Serial.println(F("Audio FX reset"));
+
+  digitalWrite(PIN_AUDIO_RST, LOW);
+  pinMode(PIN_AUDIO_RST, OUTPUT);
+  delay(resetDelayMs);
+  pinMode(PIN_AUDIO_RST, INPUT);
+
+  Serial.println(F("Waiting for Audio FX startup"));
+
+  delay(waitDelayMs);
+}
+
+void initAudio()
+{
+  initAudioPins();
+  resetAudio();
 }
 
 void updateLedProgress()
@@ -716,9 +780,31 @@ void clearLedKnockSensors()
   }
 }
 
+void clearAudioPins()
+{
+  if (progState.audioPlayMillis == 0)
+  {
+    return;
+  }
+
+  unsigned long now = millis();
+  unsigned long diffMs = now - progState.audioPlayMillis;
+
+  if (diffMs >= AUDIO_PLAY_DELAY_MS)
+  {
+    progState.audioPlayMillis = 0;
+
+    for (uint8_t i = 0; i < NUM_KNOCK_SENSORS; i++)
+    {
+      pinMode(AUDIO_TRACK_PINS[i], INPUT);
+    }
+  }
+}
+
 void onTimerGeneral(int idx, int v, int up)
 {
   clearLedKnockSensors();
+  clearAudioPins();
 }
 
 void initTimerGeneral()
@@ -759,6 +845,7 @@ void setup(void)
   initLedKnockSensors();
   initTimerGeneral();
   initLedProgress();
+  initAudio();
 
   Serial.println(F("Starting Dracula Forge program"));
 }
