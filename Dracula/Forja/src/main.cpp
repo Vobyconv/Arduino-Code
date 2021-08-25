@@ -689,15 +689,19 @@ void initKnockSensors()
   }
 }
 
-void onTimerGeneral(int idx, int v, int up)
+void clearLedKnockSensors()
 {
   unsigned long now = millis();
 
   for (uint8_t idxKnock = 0; idxKnock < NUM_KNOCK_SENSORS; idxKnock++)
   {
-    if (progState.ledKnockSensorsFillMillis[idxKnock] == 0 ||
-        progState.ledKnockSensorsFillMillis[idxKnock] > now)
+    if (progState.ledKnockSensorsFillMillis[idxKnock] == 0)
     {
+      continue;
+    }
+    else if (progState.ledKnockSensorsFillMillis[idxKnock] > now)
+    {
+      progState.ledKnockSensorsFillMillis[idxKnock] = 0;
       continue;
     }
 
@@ -710,6 +714,11 @@ void onTimerGeneral(int idx, int v, int up)
       progState.ledKnockSensorsFillMillis[idxKnock] = 0;
     }
   }
+}
+
+void onTimerGeneral(int idx, int v, int up)
+{
+  clearLedKnockSensors();
 }
 
 void initTimerGeneral()
