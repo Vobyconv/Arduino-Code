@@ -34,14 +34,14 @@ Adafruit_TCS34725 rgbSensors[NUM_RGB_SENSORS] = {
 const uint16_t LED_RGB_SENSOR_NUMS[NUM_RGB_SENSORS] = {
     20, 20, 20, 20};
 
-const uint16_t LED_RGB_SENSOR_PINS[NUM_RGB_SENSORS] = {
+const uint8_t LED_RGB_SENSOR_PINS[NUM_RGB_SENSORS] = {
     30, 31, 32, 33};
 
-Adafruit_NeoPixel ledRgbSensors[NUM_RGB_SENSORS] = {
-    Adafruit_NeoPixel(LED_RGB_SENSOR_NUMS[0], LED_RGB_SENSOR_PINS[0], NEO_GRB + NEO_KHZ800),
-    Adafruit_NeoPixel(LED_RGB_SENSOR_NUMS[1], LED_RGB_SENSOR_PINS[1], NEO_GRB + NEO_KHZ800),
-    Adafruit_NeoPixel(LED_RGB_SENSOR_NUMS[2], LED_RGB_SENSOR_PINS[2], NEO_GRB + NEO_KHZ800),
-    Adafruit_NeoPixel(LED_RGB_SENSOR_NUMS[3], LED_RGB_SENSOR_PINS[3], NEO_GRB + NEO_KHZ800)};
+WS2812FX ledRgbSensors[NUM_RGB_SENSORS] = {
+    WS2812FX(LED_RGB_SENSOR_NUMS[0], LED_RGB_SENSOR_PINS[0], NEO_GRB + NEO_KHZ800),
+    WS2812FX(LED_RGB_SENSOR_NUMS[1], LED_RGB_SENSOR_PINS[1], NEO_GRB + NEO_KHZ800),
+    WS2812FX(LED_RGB_SENSOR_NUMS[2], LED_RGB_SENSOR_PINS[2], NEO_GRB + NEO_KHZ800),
+    WS2812FX(LED_RGB_SENSOR_NUMS[3], LED_RGB_SENSOR_PINS[3], NEO_GRB + NEO_KHZ800)};
 
 const uint16_t LED_COALS_NUM = 20;
 const uint8_t LED_COALS_PIN = 34;
@@ -544,16 +544,21 @@ void updateLedRgbSensors()
 {
   for (uint8_t i = 0; i < NUM_RGB_SENSORS; i++)
   {
-    ledRgbSensors[i].clear();
+    int16_t colorIdx = progState.rgbSensorsColorIndex[i];
 
-    if (progState.rgbSensorsColorIndex[i] >= 0 &&
-        progState.rgbSensorsColorIndex[i] < NUM_RECOGNIZED_COLORS)
+    if (colorIdx >= 0 && colorIdx < NUM_RECOGNIZED_COLORS)
     {
-      uint32_t theColor = RECOGNIZED_COLORS[progState.rgbSensorsColorIndex[i]].ledColor;
-      ledRgbSensors[i].fill(theColor);
-    }
+      ledRgbSensors[i].setColor(RECOGNIZED_COLORS[colorIdx].ledColor);
 
-    ledRgbSensors[i].show();
+      if (!ledRgbSensors[i].isRunning())
+      {
+        ledRgbSensors[i].start();
+      }
+    }
+    else if (ledRgbSensors[i].isRunning())
+    {
+      ledRgbSensors[i].stop();
+    }
   }
 }
 
@@ -589,26 +594,29 @@ void initTimerRgbSensor()
 
 void initLedRgbSensors()
 {
+  const uint16_t defaultSpeed = 600;
   const uint8_t defaultBrightness = 120;
 
   for (int i = 0; i < NUM_RGB_SENSORS; i++)
   {
-    ledRgbSensors[i].begin();
+    ledRgbSensors[i].init();
     ledRgbSensors[i].setBrightness(defaultBrightness);
-    ledRgbSensors[i].clear();
-    ledRgbSensors[i].show();
+    ledRgbSensors[i].setSpeed(defaultSpeed);
+    ledRgbSensors[i].setMode(FX_MODE_BREATH);
+    ledRgbSensors[i].stop();
   }
 }
 
 void initLedCoals()
 {
-  const uint16_t defaultSpeed = 200;
-  const uint8_t defaultBrightness = 120;
+  const uint16_t defaultSpeed = 300;
+  const uint8_t defaultBrightness = 150;
 
   ledCoals.init();
   ledCoals.setBrightness(defaultBrightness);
   ledCoals.setSpeed(defaultSpeed);
   ledCoals.setMode(FX_MODE_FIRE_FLICKER);
+  ledCoals.setColor(ORANGE);
   ledCoals.stop();
 }
 
