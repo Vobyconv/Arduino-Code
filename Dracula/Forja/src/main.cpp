@@ -173,7 +173,7 @@ Atm_analog knockAnalogs[NUM_KNOCK_SENSORS];
 Atm_controller knockControllers[NUM_KNOCK_SENSORS];
 
 /**
- * LED strips for the knock sensors.
+ * LED strips for the knock sensors (anvils).
  */
 
 const uint16_t LED_KNOCK_NUMS[NUM_KNOCK_SENSORS] = {10, 10};
@@ -201,12 +201,30 @@ Adafruit_NeoPixel ledProgress = Adafruit_NeoPixel(LED_PROGRESS_NUM, LED_PROGRESS
 const uint32_t LED_PROGRESS_COLOR = Adafruit_NeoPixel::Color(255, 255, 0);
 
 /**
- * General-purpose timer.
+ * LED strip for the eye of Odin.
  */
 
-const uint32_t TIMER_GENERAL_MS = 50;
+const uint16_t LED_EYE_NUM = 10;
+const uint16_t LED_EYE_PIN = 7;
 
-Atm_timer timerGeneral;
+Adafruit_NeoPixel ledEye = Adafruit_NeoPixel(LED_EYE_NUM, LED_EYE_PIN, NEO_GRB + NEO_KHZ800);
+
+const uint32_t LED_EYE_COLORS[NUM_KNOCK_SENSORS] = {
+    Adafruit_NeoPixel::Color(255, 255, 0),
+    Adafruit_NeoPixel::Color(0, 0, 255)};
+
+const unsigned long LED_EYE_DELAY_MS = 200;
+
+/**
+ * Knock (anvil) audio timings.
+ */
+
+const unsigned long EYE_AUDIO_TIMINGS[NUM_RECIPES][SIZE_KNOCK_PATTERN] = {
+    {0, 1000, 2000, 2500, 3500},
+    {2000, 4000, 6000, 8000, 10000},
+    {0, 3000, 6000, 9000, 12000}};
+
+const unsigned long EYE_AUDIO_BETWEEN_LOOPS_MS = 8000;
 
 /**
  * Audio FX.
@@ -216,6 +234,14 @@ const uint8_t PIN_AUDIO_ACT = 8;
 const uint8_t PIN_AUDIO_RST = 9;
 const uint8_t AUDIO_TRACK_PINS[NUM_KNOCK_SENSORS] = {10, 11};
 const unsigned long AUDIO_PLAY_DELAY_MS = 200;
+
+/**
+ * General-purpose timer.
+ */
+
+const uint32_t TIMER_GENERAL_MS = 50;
+
+Atm_timer timerGeneral;
 
 /**
  * Program state.
@@ -238,6 +264,9 @@ typedef struct programState
   uint8_t currentRecipe;
   unsigned long *ledKnockSensorsFillMillis;
   unsigned long audioPlayMillis;
+  bool isEyeAudioPlaying;
+  unsigned long lastEyeAudioMillis;
+  uint8_t currentEyeAudioIdx;
 } ProgramState;
 
 ProgramState progState;
@@ -303,6 +332,10 @@ void initState()
   {
     progState.ledKnockSensorsFillMillis[i] = 0;
   }
+
+  progState.isEyeAudioPlaying = false;
+  progState.lastEyeAudioMillis = 0;
+  progState.currentEyeAudioIdx = 0;
 }
 
 bool isTrackPlaying()
@@ -356,6 +389,97 @@ void initAudio()
 {
   initAudioPins();
   resetAudio();
+}
+
+void initLedEye()
+{
+  const uint8_t defaultBrightness = 200;
+
+  ledEye.begin();
+  ledEye.setBrightness(defaultBrightness);
+  ledEye.clear();
+  ledEye.show();
+}
+
+void stopEyeAudioPattern()
+{
+  progState.isEyeAudioPlaying = false;
+  progState.lastEyeAudioMillis = 0;
+  progState.currentEyeAudioIdx = 0;
+}
+
+void startEyeAudioPattern()
+{
+  progState.isEyeAudioPlaying = true;
+}
+
+void runEyeAudioPattern()
+{
+  uint8_t idxRecipe = progState.currentRecipe;
+  uint8_t idxPattern = progState.currentEyeAudioIdx;
+
+  if (!progState.isEyeAudioPlaying || idxRecipe >= NUM_RECIPES)
+  {
+    return;
+  }
+
+  if (idxPattern > SIZE_KNOCK_PATTERN)
+  {
+    Serial.println(F("Unexpected value for knock pattern item index"));
+    return;
+  }
+
+  unsigned long now = millis();
+
+  if (progState.lastEyeAudioMillis == 0)
+  {
+    progState.lastEyeAudioMillis = now;
+  }
+
+  unsigned long baseMilllis = progState.lastEyeAudioMillis;
+  unsigned long millisClearLed = baseMilllis + LED_EYE_DELAY_MS;
+
+  if (now >= millisClearLed)
+  {
+    ledEye.clear();
+    ledEye.show();
+  }
+
+  if (idxPattern == SIZE_KNOCK_PATTERN)
+  {
+    unsigned long millisWait = baseMilllis + EYE_AUDIO_BETWEEN_LOOPS_MS;
+
+    if (now >= millisWait)
+    {
+      progState.lastEyeAudioMillis = 0;
+      progState.currentEyeAudioIdx = 0;
+    }
+
+    return;
+  }
+
+  unsigned long millisTarget = baseMilllis + EYE_AUDIO_TIMINGS[idxRecipe][idxPattern];
+
+  if (now < millisTarget)
+  {
+    return;
+  }
+
+  Serial.print(F("Eye audio pattern Recipe#"));
+  Serial.print(idxRecipe);
+  Serial.print(F(" Item#"));
+  Serial.println(idxPattern);
+
+  uint8_t idxKnock = KNOCK_PATTERNS[idxRecipe][idxPattern];
+
+  playTrack(AUDIO_TRACK_PINS[idxKnock]);
+
+  ledEye.clear();
+  ledEye.fill(LED_EYE_COLORS[idxKnock]);
+  ledEye.show();
+
+  progState.lastEyeAudioMillis = now;
+  progState.currentEyeAudioIdx++;
 }
 
 void updateLedProgress()
@@ -805,6 +929,7 @@ void onTimerGeneral(int idx, int v, int up)
 {
   clearLedKnockSensors();
   clearAudioPins();
+  runEyeAudioPattern();
 }
 
 void initTimerGeneral()
@@ -846,6 +971,7 @@ void setup(void)
   initTimerGeneral();
   initLedProgress();
   initAudio();
+  initLedEye();
 
   Serial.println(F("Starting Dracula Forge program"));
 }
