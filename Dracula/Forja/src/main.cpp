@@ -224,7 +224,7 @@ const unsigned long EYE_AUDIO_TIMINGS[NUM_RECIPES][SIZE_KNOCK_PATTERN] = {
     {2000, 4000, 6000, 8000, 10000},
     {0, 3000, 6000, 9000, 12000}};
 
-const unsigned long EYE_AUDIO_BETWEEN_LOOPS_MS = 8000;
+const unsigned long EYE_AUDIO_DELAY_LOOPS_MS = 8000;
 
 /**
  * Audio FX.
@@ -262,6 +262,7 @@ typedef struct programState
   int16_t *rgbSensorsColorIndex;
   bool isRgbSensorsPhaseCompleted;
   uint8_t currentRecipe;
+  bool isAnvilStepActive;
   unsigned long *ledKnockSensorsFillMillis;
   unsigned long audioPlayMillis;
   bool isEyeAudioPlaying;
@@ -324,15 +325,15 @@ void initState()
     stateTagsMillis[i] = 0;
   }
 
-  progState.isRgbSensorsPhaseCompleted = false;
-  progState.currentRecipe = 0;
-  progState.audioPlayMillis = 0;
-
   for (uint8_t i = 0; i < NUM_KNOCK_SENSORS; i++)
   {
     progState.ledKnockSensorsFillMillis[i] = 0;
   }
 
+  progState.isRgbSensorsPhaseCompleted = false;
+  progState.currentRecipe = 0;
+  progState.isAnvilStepActive = false;
+  progState.audioPlayMillis = 0;
   progState.isEyeAudioPlaying = false;
   progState.lastEyeAudioMillis = 0;
   progState.currentEyeAudioIdx = 0;
@@ -391,6 +392,26 @@ void initAudio()
   resetAudio();
 }
 
+void updateLedProgress()
+{
+  uint16_t numPerPhase = floor((float)LED_PROGRESS_NUM / NUM_RECIPES);
+  uint16_t count = min(numPerPhase * progState.currentRecipe, ledProgress.numPixels());
+
+  ledProgress.clear();
+  ledProgress.fill(LED_PROGRESS_COLOR, 0, count);
+  ledProgress.show();
+}
+
+void initLedProgress()
+{
+  const uint8_t defaultBrightness = 120;
+
+  ledProgress.begin();
+  ledProgress.setBrightness(defaultBrightness);
+  ledProgress.clear();
+  ledProgress.show();
+}
+
 void initLedEye()
 {
   const uint8_t defaultBrightness = 200;
@@ -411,6 +432,27 @@ void stopEyeAudioPattern()
 void startEyeAudioPattern()
 {
   progState.isEyeAudioPlaying = true;
+}
+
+void advanceToAnvilStep()
+{
+  Serial.print(F("Advancing to anvil step for recipe #"));
+  Serial.println(progState.currentRecipe);
+
+  progState.isAnvilStepActive = true;
+  startEyeAudioPattern();
+}
+
+void advanceToNextMaterialsPhase()
+{
+  progState.currentRecipe++;
+
+  Serial.print(F("Advancing to next materials phase #"));
+  Serial.println(progState.currentRecipe);
+
+  progState.isAnvilStepActive = false;
+  stopEyeAudioPattern();
+  updateLedProgress();
 }
 
 void runEyeAudioPattern()
@@ -447,7 +489,7 @@ void runEyeAudioPattern()
 
   if (idxPattern == SIZE_KNOCK_PATTERN)
   {
-    unsigned long millisWait = baseMilllis + EYE_AUDIO_BETWEEN_LOOPS_MS;
+    unsigned long millisWait = baseMilllis + EYE_AUDIO_DELAY_LOOPS_MS;
 
     if (now >= millisWait)
     {
@@ -482,26 +524,6 @@ void runEyeAudioPattern()
   progState.currentEyeAudioIdx++;
 }
 
-void updateLedProgress()
-{
-  uint16_t numPerPhase = floor((float)LED_PROGRESS_NUM / NUM_RECIPES);
-  uint16_t count = min(numPerPhase * progState.currentRecipe, ledProgress.numPixels());
-
-  ledProgress.clear();
-  ledProgress.fill(LED_PROGRESS_COLOR, 0, count);
-  ledProgress.show();
-}
-
-void initLedProgress()
-{
-  const uint8_t defaultBrightness = 120;
-
-  ledProgress.begin();
-  ledProgress.setBrightness(defaultBrightness);
-  ledProgress.clear();
-  ledProgress.show();
-}
-
 Materials getMaterial(char *theTag)
 {
   if (strlen(theTag) == 0)
@@ -527,7 +549,7 @@ Materials getMaterial(char *theTag)
   }
 }
 
-int16_t getCurrentRecipe()
+int16_t getActiveRecipe()
 {
   Materials readerMaterials[NUM_RFID];
 
@@ -631,17 +653,6 @@ void readRfid(uint8_t readerIdx)
   }
 }
 
-void advanceMaterialsRecipeStep()
-{
-  uint8_t nextRecipe = progState.currentRecipe + 1;
-
-  Serial.print(F("Advancing to materials recipe #"));
-  Serial.println(nextRecipe);
-
-  progState.currentRecipe = nextRecipe;
-  updateLedProgress();
-}
-
 void onTimerRfid(int idx, int v, int up)
 {
   for (uint8_t i = 0; i < NUM_RFID; i++)
@@ -649,11 +660,14 @@ void onTimerRfid(int idx, int v, int up)
     readRfid(i);
   }
 
-  int16_t currRecipe = getCurrentRecipe();
-
-  if (currRecipe == progState.currentRecipe)
+  if (progState.isRgbSensorsPhaseCompleted || progState.isAnvilStepActive)
   {
-    advanceMaterialsRecipeStep();
+    return;
+  }
+
+  if (getActiveRecipe() == progState.currentRecipe)
+  {
+    advanceToAnvilStep();
   }
 }
 
@@ -666,7 +680,7 @@ void initTimerRfid()
       .start();
 }
 
-bool isCurrentRgbSensorsStateValid()
+bool isRgbSensorsStateValid()
 {
   for (uint8_t i = 0; i < NUM_RGB_SENSORS; i++)
   {
@@ -764,7 +778,7 @@ void onTimerRgbSensor(int idx, int v, int up)
 
   updateLedRgbSensors();
 
-  if (isCurrentRgbSensorsStateValid())
+  if (isRgbSensorsStateValid())
   {
     progState.isRgbSensorsPhaseCompleted = true;
     ledCoals.start();
@@ -844,12 +858,32 @@ void initLedKnockSensors()
   }
 }
 
+bool isKnockSensorsStateValid()
+{
+  if (knockHistory.size() < SIZE_KNOCK_PATTERN)
+  {
+    return false;
+  }
+
+  for (uint8_t i = 0; i < SIZE_KNOCK_PATTERN; i++)
+  {
+    uint8_t bufIdx = knockHistory.size() - 1 - (SIZE_KNOCK_PATTERN - 1 - i);
+
+    if (knockHistory[bufIdx] != KNOCK_PATTERNS[progState.currentRecipe][i])
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void onKnock(int idx, int v, int up)
 {
   Serial.print(F("Knock #"));
   Serial.println(idx);
 
-  if (!progState.isRgbSensorsPhaseCompleted)
+  if (!progState.isRgbSensorsPhaseCompleted || !progState.isAnvilStepActive)
   {
     return;
   }
@@ -860,6 +894,11 @@ void onKnock(int idx, int v, int up)
   ledKnockSensors[idx].show();
 
   progState.ledKnockSensorsFillMillis[idx] = millis();
+
+  if (isKnockSensorsStateValid())
+  {
+    advanceToNextMaterialsPhase();
+  }
 }
 
 void initKnockSensors()
