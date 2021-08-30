@@ -194,9 +194,9 @@ const unsigned long LED_KNOCK_DELAY_MS = 50;
  */
 
 const uint16_t LED_PROGRESS_NUM = 20;
-const uint16_t LED_PROGRESS_PIN = 6;
+const uint8_t LED_PROGRESS_PIN = 6;
 
-Adafruit_NeoPixel ledProgress = Adafruit_NeoPixel(LED_PROGRESS_NUM, LED_PROGRESS_PIN, NEO_GRB + NEO_KHZ800);
+WS2812FX ledProgress = WS2812FX(LED_PROGRESS_NUM, LED_PROGRESS_PIN, NEO_GRB + NEO_KHZ800);
 
 const uint32_t LED_PROGRESS_COLOR = Adafruit_NeoPixel::Color(255, 255, 0);
 
@@ -268,6 +268,7 @@ typedef struct programState
   bool isEyeAudioPlaying;
   unsigned long lastEyeAudioMillis;
   uint8_t currentEyeAudioIdx;
+  bool ledEyeClearFlag;
 } ProgramState;
 
 ProgramState progState;
@@ -337,6 +338,7 @@ void initState()
   progState.isEyeAudioPlaying = false;
   progState.lastEyeAudioMillis = 0;
   progState.currentEyeAudioIdx = 0;
+  progState.ledEyeClearFlag = false;
 }
 
 bool isTrackPlaying()
@@ -394,22 +396,46 @@ void initAudio()
 
 void updateLedProgress()
 {
+  if (ledProgress.isRunning())
+  {
+    ledProgress.stop();
+  }
+
   uint16_t numPerPhase = floor((float)LED_PROGRESS_NUM / NUM_RECIPES);
   uint16_t count = min(numPerPhase * progState.currentRecipe, ledProgress.numPixels());
 
+  const uint8_t idxSegment = 0;
+  const uint16_t start = 0;
+  const uint16_t speed = 1500;
+  const bool reverse = false;
+
   ledProgress.clear();
-  ledProgress.fill(LED_PROGRESS_COLOR, 0, count);
-  ledProgress.show();
+  ledProgress.resetSegments();
+
+  ledProgress.setSegment(
+      idxSegment,
+      start,
+      count,
+      FX_MODE_COLOR_WIPE_REV,
+      LED_PROGRESS_COLOR,
+      speed,
+      reverse);
+
+  if (!ledProgress.isRunning())
+  {
+    ledProgress.start();
+  }
 }
 
 void initLedProgress()
 {
-  const uint8_t defaultBrightness = 120;
+  const uint8_t defaultBrightness = 150;
 
-  ledProgress.begin();
+  ledProgress.init();
   ledProgress.setBrightness(defaultBrightness);
-  ledProgress.clear();
-  ledProgress.show();
+  ledProgress.setMode(FX_MODE_COLOR_WIPE_REV);
+  ledProgress.setColor(LED_PROGRESS_COLOR);
+  ledProgress.stop();
 }
 
 void initLedEye()
@@ -427,6 +453,7 @@ void stopEyeAudioPattern()
   progState.isEyeAudioPlaying = false;
   progState.lastEyeAudioMillis = 0;
   progState.currentEyeAudioIdx = 0;
+  progState.ledEyeClearFlag = false;
 }
 
 void startEyeAudioPattern()
@@ -436,10 +463,11 @@ void startEyeAudioPattern()
 
 void advanceToAnvilStep()
 {
-  Serial.print(F("Advancing to anvil step for recipe #"));
+  Serial.print(F("Advancing to anvil step: recipe #"));
   Serial.println(progState.currentRecipe);
 
   progState.isAnvilStepActive = true;
+  stopEyeAudioPattern();
   startEyeAudioPattern();
 }
 
@@ -447,7 +475,7 @@ void advanceToNextMaterialsPhase()
 {
   progState.currentRecipe++;
 
-  Serial.print(F("Advancing to next materials phase #"));
+  Serial.print(F("Advancing to next materials phase: recipe #"));
   Serial.println(progState.currentRecipe);
 
   progState.isAnvilStepActive = false;
@@ -481,10 +509,11 @@ void runEyeAudioPattern()
   unsigned long baseMilllis = progState.lastEyeAudioMillis;
   unsigned long millisClearLed = baseMilllis + LED_EYE_DELAY_MS;
 
-  if (now >= millisClearLed)
+  if (progState.ledEyeClearFlag && now >= millisClearLed)
   {
     ledEye.clear();
     ledEye.show();
+    progState.ledEyeClearFlag = false;
   }
 
   if (idxPattern == SIZE_KNOCK_PATTERN)
@@ -507,9 +536,9 @@ void runEyeAudioPattern()
     return;
   }
 
-  Serial.print(F("Eye audio pattern Recipe#"));
+  Serial.print(F("Eye audio pattern: recipe #"));
   Serial.print(idxRecipe);
-  Serial.print(F(" Item#"));
+  Serial.print(F(" item #"));
   Serial.println(idxPattern);
 
   uint8_t idxKnock = KNOCK_PATTERNS[idxRecipe][idxPattern];
@@ -522,6 +551,7 @@ void runEyeAudioPattern()
 
   progState.lastEyeAudioMillis = now;
   progState.currentEyeAudioIdx++;
+  progState.ledEyeClearFlag = true;
 }
 
 Materials getMaterial(char *theTag)
@@ -955,6 +985,8 @@ void clearAudioPins()
 
   if (diffMs >= AUDIO_PLAY_DELAY_MS)
   {
+    Serial.println(F("Clearing audio pins"));
+
     progState.audioPlayMillis = 0;
 
     for (uint8_t i = 0; i < NUM_KNOCK_SENSORS; i++)
@@ -995,6 +1027,17 @@ void initSerials()
   }
 }
 
+void serviceWS2812FX()
+{
+  ledCoals.service();
+  ledProgress.service();
+
+  for (uint8_t i = 0; i < NUM_RGB_SENSORS; i++)
+  {
+    ledRgbSensors[i].service();
+  }
+}
+
 void setup(void)
 {
   initSerials();
@@ -1018,5 +1061,5 @@ void setup(void)
 void loop(void)
 {
   automaton.run();
-  ledCoals.service();
+  serviceWS2812FX();
 }
