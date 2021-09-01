@@ -483,8 +483,28 @@ void advanceToNextMaterialsPhase()
   updateLedProgress();
 }
 
+void clearLedEye()
+{
+  if (!progState.ledEyeClearFlag)
+  {
+    return;
+  }
+
+  unsigned long now = millis();
+  unsigned long millisClear = progState.lastEyeAudioMillis + LED_EYE_DELAY_MS;
+
+  if (progState.lastEyeAudioMillis == 0 || now >= millisClear)
+  {
+    ledEye.clear();
+    ledEye.show();
+    progState.ledEyeClearFlag = false;
+  }
+}
+
 void runEyeAudioPattern()
 {
+  clearLedEye();
+
   uint8_t idxRecipe = progState.currentRecipe;
   uint8_t idxPattern = progState.currentEyeAudioIdx;
 
@@ -507,14 +527,6 @@ void runEyeAudioPattern()
   }
 
   unsigned long baseMilllis = progState.lastEyeAudioMillis;
-  unsigned long millisClearLed = baseMilllis + LED_EYE_DELAY_MS;
-
-  if (progState.ledEyeClearFlag && now >= millisClearLed)
-  {
-    ledEye.clear();
-    ledEye.show();
-    progState.ledEyeClearFlag = false;
-  }
 
   if (idxPattern == SIZE_KNOCK_PATTERN)
   {
