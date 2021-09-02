@@ -32,7 +32,7 @@ Adafruit_TCS34725 rgbSensors[NUM_RGB_SENSORS] = {
  */
 
 const uint16_t LED_RGB_SENSOR_NUMS[NUM_RGB_SENSORS] = {
-    20, 20, 20, 20};
+    90, 90, 90, 90};
 
 const uint8_t LED_RGB_SENSOR_PINS[NUM_RGB_SENSORS] = {
     30, 31, 32, 33};
@@ -43,7 +43,7 @@ WS2812FX ledRgbSensors[NUM_RGB_SENSORS] = {
     WS2812FX(LED_RGB_SENSOR_NUMS[2], LED_RGB_SENSOR_PINS[2], NEO_GRB + NEO_KHZ800),
     WS2812FX(LED_RGB_SENSOR_NUMS[3], LED_RGB_SENSOR_PINS[3], NEO_GRB + NEO_KHZ800)};
 
-const uint16_t LED_COALS_NUM = 20;
+const uint16_t LED_COALS_NUM = 150;
 const uint8_t LED_COALS_PIN = 34;
 
 WS2812FX ledCoals = WS2812FX(LED_COALS_NUM, LED_COALS_PIN, NEO_GRB + NEO_KHZ800);
@@ -137,7 +137,9 @@ enum Materials
   unknown,
   gold,
   silver,
-  bronze
+  bronze,
+  mithril,
+  orichalcum
 };
 
 const uint8_t NUM_RECIPES = 3;
@@ -150,6 +152,8 @@ Materials recipes[NUM_RECIPES][NUM_RFID] = {
 char tagGold[SIZE_TAG_ID] = "1D00277FBDF8";
 char tagSilver[SIZE_TAG_ID] = "1D00278D53E4";
 char tagBronze[SIZE_TAG_ID] = "1D0027B80A88";
+char tagMithril[SIZE_TAG_ID] = "1D0027B80A90";
+char tagOrichalcum[SIZE_TAG_ID] = "1D0027B80A92";
 
 /**
  * Knock sensors.
@@ -176,7 +180,7 @@ Atm_controller knockControllers[NUM_KNOCK_SENSORS];
  * LED strips for the knock sensors (anvils).
  */
 
-const uint16_t LED_KNOCK_NUMS[NUM_KNOCK_SENSORS] = {10, 10};
+const uint16_t LED_KNOCK_NUMS[NUM_KNOCK_SENSORS] = {12, 12};
 const uint16_t LED_KNOCK_PINS[NUM_KNOCK_SENSORS] = {4, 5};
 
 Adafruit_NeoPixel ledKnockSensors[NUM_KNOCK_SENSORS] = {
@@ -193,7 +197,7 @@ const unsigned long LED_KNOCK_DELAY_MS = 50;
  * LED strip to signal progress.
  */
 
-const uint16_t LED_PROGRESS_NUM = 20;
+const uint16_t LED_PROGRESS_NUM = 60;
 const uint8_t LED_PROGRESS_PIN = 6;
 
 WS2812FX ledProgress = WS2812FX(LED_PROGRESS_NUM, LED_PROGRESS_PIN, NEO_GRB + NEO_KHZ800);
@@ -204,7 +208,7 @@ const uint32_t LED_PROGRESS_COLOR = Adafruit_NeoPixel::Color(255, 255, 0);
  * LED strip for the eye of Odin.
  */
 
-const uint16_t LED_EYE_NUM = 10;
+const uint16_t LED_EYE_NUM = 20;
 const uint16_t LED_EYE_PIN = 7;
 
 Adafruit_NeoPixel ledEye = Adafruit_NeoPixel(LED_EYE_NUM, LED_EYE_PIN, NEO_GRB + NEO_KHZ800);
@@ -584,6 +588,14 @@ Materials getMaterial(char *theTag)
   else if (SerialRFID::isEqualTag(theTag, tagBronze))
   {
     return bronze;
+  }
+  else if (SerialRFID::isEqualTag(theTag, tagMithril))
+  {
+    return mithril;
+  }
+  else if (SerialRFID::isEqualTag(theTag, tagOrichalcum))
+  {
+    return orichalcum;
   }
   else
   {
