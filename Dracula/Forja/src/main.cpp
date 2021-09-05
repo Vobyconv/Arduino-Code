@@ -149,11 +149,37 @@ Materials recipes[NUM_RECIPES][NUM_RFID] = {
     {gold, gold, gold, bronze, silver},
     {gold, gold, gold, bronze, bronze}};
 
-char tagGold[SIZE_TAG_ID] = "1D00277FBDF8";
-char tagSilver[SIZE_TAG_ID] = "1D00278D53E4";
-char tagBronze[SIZE_TAG_ID] = "1D0027B80A88";
-char tagMithril[SIZE_TAG_ID] = "1D0027B80A90";
-char tagOrichalcum[SIZE_TAG_ID] = "1D0027B80A92";
+const uint8_t NUM_TAGS_MATERIAL = 4;
+
+char tagsGold[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
+    "1D00277FBDF8",
+    "1D00277FBDF8",
+    "1D00277FBDF8",
+    "1D00277FBDF8"};
+
+char tagsSilver[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
+    "1D00277FBDF9",
+    "1D00277FBDF9",
+    "1D00277FBDF9",
+    "1D00277FBDF9"};
+
+char tagsBronze[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
+    "1D00277FBDF0",
+    "1D00277FBDF0",
+    "1D00277FBDF0",
+    "1D00277FBDF0"};
+
+char tagsMithril[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
+    "1D00277FBDF1",
+    "1D00277FBDF1",
+    "1D00277FBDF1",
+    "1D00277FBDF1"};
+
+char tagsOrichalcum[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
+    "1D00277FBDF2",
+    "1D00277FBDF2",
+    "1D00277FBDF2",
+    "1D00277FBDF2"};
 
 /**
  * Knock sensors.
@@ -577,30 +603,31 @@ Materials getMaterial(char *theTag)
     return unknown;
   }
 
-  if (SerialRFID::isEqualTag(theTag, tagGold))
+  for (uint8_t i = 0; i < NUM_TAGS_MATERIAL; i++)
   {
-    return gold;
+    if (SerialRFID::isEqualTag(theTag, tagsGold[i]))
+    {
+      return gold;
+    }
+    else if (SerialRFID::isEqualTag(theTag, tagsSilver[i]))
+    {
+      return silver;
+    }
+    else if (SerialRFID::isEqualTag(theTag, tagsBronze[i]))
+    {
+      return bronze;
+    }
+    else if (SerialRFID::isEqualTag(theTag, tagsMithril[i]))
+    {
+      return mithril;
+    }
+    else if (SerialRFID::isEqualTag(theTag, tagsOrichalcum[i]))
+    {
+      return orichalcum;
+    }
   }
-  else if (SerialRFID::isEqualTag(theTag, tagSilver))
-  {
-    return silver;
-  }
-  else if (SerialRFID::isEqualTag(theTag, tagBronze))
-  {
-    return bronze;
-  }
-  else if (SerialRFID::isEqualTag(theTag, tagMithril))
-  {
-    return mithril;
-  }
-  else if (SerialRFID::isEqualTag(theTag, tagOrichalcum))
-  {
-    return orichalcum;
-  }
-  else
-  {
-    return unknown;
-  }
+
+  return unknown;
 }
 
 int16_t getActiveRecipe()
