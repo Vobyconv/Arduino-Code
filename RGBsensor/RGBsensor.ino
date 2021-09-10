@@ -18,7 +18,7 @@ Adafruit_NeoPixel TiraLED = Adafruit_NeoPixel(Leds, LedPin, NEO_GRB + NEO_KHZ800
 
 void iniled() {
   TiraLED.begin();
-  TiraLED.setBrightness(random(50,150));
+  TiraLED.setBrightness(100);
   TiraLED.show();
   TiraLED.clear();
 }
@@ -36,12 +36,13 @@ void pinM(){
   pinMode(pad, INPUT_PULLUP);
 }
 
-void touch() {
-  if (digitalRead(pad)==HIGH) {
+void touch() { 
+    Serial.print(pad);
+  if (digitalRead(pad)==LOW) {
     Serial.println(digitalRead(pad));
-    Serial.print("tocando");
+    Serial.println("tocando");
     lecture();
-    delay(60);
+    delay(10);
     }
   }
 
@@ -66,23 +67,29 @@ void lecture(){
   int ColorBlue = blue;
   int Nclear = clear;
   
-  int redLevel = map(ColorRed, lowMesure, highMesure, 0, 255);
-  int greenLevel = map(ColorGreen, lowMesure, highMesure, 0, 255);
-  int blueLevel = map(ColorBlue, lowMesure, highMesure, 0, 255);
+  redLevel = map(ColorRed, lowMesure, highMesure, 0, 255);
+  greenLevel = map(ColorGreen, lowMesure, highMesure, 0, 255);
+  blueLevel = map(ColorBlue, lowMesure, highMesure, 0, 255);
   int brillo = map(Nclear, lowMesure, highMesure, 0, 255);
 
-if (redLevel < 125) {redLevel = 10;} if (redLevel > 200) {redLevel = 255;}
-if (greenLevel < 125) {greenLevel = 10;} if (greenLevel > 200) {greenLevel = 255;}
-if (blueLevel < 125) {blueLevel = 10;} if (blueLevel > 200) {blueLevel = 255;}
+if (redLevel < 125) {redLevel = 20;} if (redLevel > 200) {redLevel = 255;}
+if (greenLevel < 125) {greenLevel = 20;} if (greenLevel > 200) {greenLevel = 255;}
+if (blueLevel < 125) {blueLevel = 20;} if (blueLevel > 200) {blueLevel = 255;}
 
-  Serial.print("C:\t"); Serial.print(clear);
-  Serial.print("\tRlevel:\t"); Serial.print(redLevel);
-  Serial.print("\tGlevel:\t"); Serial.print(greenLevel);
-  Serial.print("\tBlevel:\t"); Serial.println(blueLevel);
+  //Serial.print("C:\t"); Serial.print(clear);
+  //Serial.print("\tRlevel:\t"); Serial.print(redLevel);
+  //Serial.print("\tGlevel:\t"); Serial.print(greenLevel);
+  //Serial.print("\tBlevel:\t"); Serial.println(blueLevel);
   //torch();
   }
 
 void torch(){
+
+    Serial.print("\tRlevel:\t"); Serial.print(redLevel);
+    Serial.print("\tGlevel:\t"); Serial.print(greenLevel);
+    Serial.print("\tBlevel:\t"); Serial.println(blueLevel);
+    
+    TiraLED.setBrightness(random(50,150));
     for (int i = 0; i <= Leds ; i++) {
     TiraLED.setPixelColor(i, redLevel, greenLevel, blueLevel);
     TiraLED.show();
@@ -102,11 +109,15 @@ void setup() {
     Serial.println("No TCS34725 found ... check your connections");
     while (1); // halt!
   }
-  iniWhite();
+  iniled();
   pinM();
 }
 
+
 void loop() {
 touch();
+//lecture();
 torch();
+//boton();
+delay(20);
 }
