@@ -188,7 +188,7 @@ void Constel_7_off(){
 //Contadores de victoria
 int solucion = 2;
 int solucionNum[] = { 1, 2, 3, 4, 5, 6, 7, 8};
-int openRele[] = { true, true, false, false, false, false, false, false};
+int openRele[] = { false, false, false, true, true, false, true, false};
 int openAll = 0;
 
 //inicio de tioras led
