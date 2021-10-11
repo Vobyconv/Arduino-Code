@@ -65,20 +65,20 @@ typedef struct colorDef
 const uint8_t NUM_RECOGNIZED_COLORS = 4;
 
 const ColorDef RECOGNIZED_COLORS[NUM_RECOGNIZED_COLORS] = {
-    {.redRatio = 0.8,
+    {.redRatio = 0.5,
      .greenRatio = 0,
      .blueRatio = 0,
      .ledColor = Adafruit_NeoPixel::Color(255, 0, 0)},
     {.redRatio = 0,
-     .greenRatio = 0.8,
+     .greenRatio = 0.5,
      .blueRatio = 0,
      .ledColor = Adafruit_NeoPixel::Color(0, 255, 0)},
     {.redRatio = 0,
      .greenRatio = 0,
-     .blueRatio = 0.8,
+     .blueRatio = 0.5,
      .ledColor = Adafruit_NeoPixel::Color(0, 0, 255)},
-    {.redRatio = 0.4,
-     .greenRatio = 0.4,
+    {.redRatio = 0.35,
+     .greenRatio = 0.35,
      .blueRatio = 0,
      .ledColor = Adafruit_NeoPixel::Color(255, 255, 0)}};
 
@@ -786,7 +786,7 @@ void readRgbSensor(uint8_t sensorIdx)
   Serial.print(F("Reading RGB #"));
   Serial.println(sensorIdx);
 
-  rgbSensors[sensorIdx].getRawDataOneShot(&rawRed, &rawGreen, &rawBlue, &rawClear);
+  rgbSensors[sensorIdx].getRawData(&rawRed, &rawGreen, &rawBlue, &rawClear);
 
   Serial.print("R:\t");
   Serial.print(rawRed);
@@ -808,6 +808,14 @@ void readRgbSensor(uint8_t sensorIdx)
   float redRatio = (float)rawRed / sum;
   float greenRatio = (float)rawGreen / sum;
   float blueRatio = (float)rawBlue / sum;
+
+  Serial.print("R.R:\t");
+  Serial.print(redRatio);
+  Serial.print("\tR.G:\t");
+  Serial.print(greenRatio);
+  Serial.print("\tR.B:\t");
+  Serial.print(blueRatio);
+  Serial.println();
 
   for (uint8_t colorIdx = 0; colorIdx < NUM_RECOGNIZED_COLORS; colorIdx++)
   {
@@ -878,14 +886,14 @@ void initTimerRgbSensor()
 void initLedRgbSensors()
 {
   const uint16_t defaultSpeed = 600;
-  const uint8_t defaultBrightness = 120;
+  const uint8_t defaultBrightness = 160;
 
   for (int i = 0; i < NUM_RGB_SENSORS; i++)
   {
     ledRgbSensors[i].init();
     ledRgbSensors[i].setBrightness(defaultBrightness);
     ledRgbSensors[i].setSpeed(defaultSpeed);
-    ledRgbSensors[i].setMode(FX_MODE_BREATH);
+    ledRgbSensors[i].setMode(FX_MODE_COLOR_WIPE_INV);
     ledRgbSensors[i].stop();
   }
 }
@@ -1097,14 +1105,14 @@ void setup(void)
   initTimerRgbSensor();
   initLedRgbSensors();
   initLedCoals();
-  initRfidsTagInRange();
-  initTimerRfid();
-  initKnockSensors();
-  initLedKnockSensors();
-  initTimerGeneral();
-  initLedProgress();
-  initAudio();
-  initLedEye();
+  // initRfidsTagInRange();
+  // initTimerRfid();
+  // initKnockSensors();
+  // initLedKnockSensors();
+  // initTimerGeneral();
+  // initLedProgress();
+  // initAudio();
+  // initLedEye();
 
   Serial.println(F("Starting Dracula Forge program"));
 }
