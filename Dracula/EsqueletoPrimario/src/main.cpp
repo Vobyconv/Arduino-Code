@@ -37,8 +37,8 @@ String validTags[NUM_READERS][NUM_OPTIONS] = {
  * LEDs.
  */
 
-const uint16_t LED_BOX_NUM = 150;
-const uint16_t LED_STRIPS_NUM = 150;
+const uint16_t LED_BOX_NUM = 100;
+const uint16_t LED_STRIPS_NUM = 100;
 
 const uint8_t LED_BOX_PIN = 10;
 const uint8_t LED_STRIPS_PIN = 11;
@@ -75,13 +75,17 @@ typedef struct programState
   bool isPrimaryComplete;
   bool isSecondaryComplete;
   bool isBatsStageComplete;
+  bool flagBatsActivation;
+  bool flagRelayUpdate;
 } ProgramState;
 
 ProgramState progState = {
     .emptyReadCount = {0, 0, 0, 0},
     .isPrimaryComplete = false,
     .isSecondaryComplete = false,
-    .isBatsStageComplete = false};
+    .isBatsStageComplete = false,
+    .flagBatsActivation = false,
+    .flagRelayUpdate = false};
 
 void initState()
 {
@@ -93,6 +97,8 @@ void initState()
   progState.isPrimaryComplete = false;
   progState.isSecondaryComplete = false;
   progState.isBatsStageComplete = false;
+  progState.flagBatsActivation = false;
+  progState.flagRelayUpdate = false;
 }
 
 void lockRelay(uint8_t pin)
@@ -187,7 +193,9 @@ void pollRfidReaders()
       progState.emptyReadCount[i] += 1;
     }
 
-    if (!tagId.length() && currentTags[i].length() && progState.emptyReadCount[i] <= EMPTY_TOLERANCE)
+    if (!tagId.length() &&
+        currentTags[i].length() &&
+        progState.emptyReadCount[i] <= EMPTY_TOLERANCE)
     {
       Serial.print(F("Ignoring empty read on: "));
       Serial.println(i);
@@ -281,6 +289,14 @@ void onTimerState(int idx, int v, int up)
   if (rfidOk)
   {
     setOpenDrainOutput(PIN_OUTPUT_ACTIVATION_BATS, true);
+
+    if (!progState.flagBatsActivation)
+    {
+      const uint8_t stripBrightness = 160;
+      ledStrips.setMode(FX_MODE_COLOR_WIPE);
+      ledStrips.setBrightness(stripBrightness);
+      progState.flagBatsActivation = true;
+    }
   }
 
   // If the RFID stage is still pending, we have to poll the RFID readers
@@ -308,6 +324,15 @@ void onTimerState(int idx, int v, int up)
     {
       openRelay(PIN_OUTPUT_RELAY_PRIMARY);
       lockRelay(PIN_OUTPUT_RELAY_SECONDARY);
+    }
+
+    if (!progState.flagRelayUpdate)
+    {
+      const uint16_t boxSpeed = 600;
+      const uint8_t boxBrightness = 160;
+      ledBox.setSpeed(boxSpeed);
+      ledBox.setBrightness(boxBrightness);
+      progState.flagRelayUpdate = true;
     }
   }
   else if (!rfidOk && progState.isBatsStageComplete)
