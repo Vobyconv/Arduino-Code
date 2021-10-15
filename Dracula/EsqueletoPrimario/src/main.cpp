@@ -63,7 +63,7 @@ Atm_digital digitalInputCompletionBats;
  * Program state.
  */
 
-const uint32_t TIMER_STATE_MS = 500;
+const uint32_t TIMER_STATE_MS = 250;
 
 Atm_timer timerState;
 
