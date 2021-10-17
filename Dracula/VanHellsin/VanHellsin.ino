@@ -5,6 +5,9 @@
 //Ordenes basicas ---------------------
 int pinBestias = 12;
 int puntosLed = 20;
+int pinLedSkills = 10;
+int puntosLedSkills = 6;
+
 int numBestias = 4;
 int poten = A0;
 int bestia = 0;
@@ -28,16 +31,21 @@ void pinMcomp(){
   }  
 }
 
-
-
 //tiras -------------------
 Adafruit_NeoPixel tiraBestias = Adafruit_NeoPixel(puntosLed, pinBestias, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel tiraSkills = Adafruit_NeoPixel(puntosLedSkills, pinLedSkills, NEO_GRB + NEO_KHZ800);
+
 
 void iniled() {
   tiraBestias.begin();
   tiraBestias.setBrightness(200);
   tiraBestias.show();
   tiraBestias.clear();
+  
+  tiraSkills.begin();
+  tiraSkills.setBrightness(200);
+  tiraSkills.show();
+  tiraSkills.clear();
 }
 
 
@@ -71,7 +79,7 @@ void chupacabras(){
   int factor = posicion-1;
   for (int i = 0+factor*ledPorBestia; i <= ledPorBestia*posicion; i++) {
     tiraBestias.setPixelColor(i, rojo);
-      tiraBestias.show();
+    tiraBestias.show();
   }
 }
 
@@ -139,7 +147,26 @@ void exitoAracne() {
   if (exito == total) {aracne();}
 }
 
-
+// Skills ---------------------------
+  void pruebaSkills() {
+  
+  int skillsOnOff[skillsNum] = {0, 1, 2, 3, 4, 5};  
+   
+  for (int i = 0; i < skillsNum; i++) {
+    if (digitalRead(skillsPin[i]) == 0) {
+    tiraSkills.setPixelColor(skillsOnOff[i], rojo);
+    tiraSkills.show();
+    }
+    else {
+    tiraSkills.setPixelColor(skillsOnOff[i], verde);
+    tiraSkills.show();
+    }
+    Serial.print(F("skill  : "));
+    Serial.print(skillsOnOff[i]);
+    Serial.print(F(" / valor  : "));
+    Serial.println(digitalRead(skillsPin[i]));
+    }
+}
 
 
 void setup()
@@ -153,6 +180,7 @@ void setup()
 
 void loop()
 {
+  pruebaSkills();
   selector(); 
   pinMcomp();
   exitoLobo();
