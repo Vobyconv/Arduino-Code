@@ -6,15 +6,15 @@
 int pinBestias = 12;
 int puntosLed = 20;
 int pinLedSkills = 10;
-int puntosLedSkills = 6;
+int puntosLedSkills = 12;
 
 int numBestias = 4;
 int poten = A0;
 int bestia = 0;
 const int ledPorBestia = (puntosLed/numBestias);
 
-int const skillsNum = 6;
-int skillsPin[skillsNum] = {2, 3, 4, 5, 6, 7};
+int const skillsNum = 12;
+int skillsPin[skillsNum] = {2, 3, 4, 5, 6, 7, 8, A1, A2, A3, A4, A5};
 
 void pinM(){ 
   for (int i = 0; i <= skillsNum-1; i++) {
@@ -112,7 +112,7 @@ void selector() {
 }
 
 void exitoLobo() {
-  int loboOK[] = { 1, 1, 1, 0, 0, 0};
+  int loboOK[] = { 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   int total = skillsNum;
   int exito = 0;
   for (int i = 0; i <= total-1 ; i++) {
@@ -130,7 +130,7 @@ void exitoLobo() {
 }
 
 void exitoAracne() {
-  int aracneOK[] = { 0, 0, 1, 0, 0, 1};
+  int aracneOK[] = { 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0};
   int total = skillsNum;
   int exito = 0;
   for (int i = 0; i <= total-1 ; i++) {
@@ -150,15 +150,15 @@ void exitoAracne() {
 // Skills ---------------------------
   void pruebaSkills() {
   
-  int skillsOnOff[skillsNum] = {0, 1, 2, 3, 4, 5};  
+  int skillsOnOff[skillsNum] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};  
    
   for (int i = 0; i < skillsNum; i++) {
-    if (digitalRead(skillsPin[i]) == 0) {
-    tiraSkills.setPixelColor(skillsOnOff[i], rojo);
+    if (digitalRead(skillsPin[i]) == 1) {
+    tiraSkills.setPixelColor(skillsOnOff[i], verde);
     tiraSkills.show();
     }
     else {
-    tiraSkills.setPixelColor(skillsOnOff[i], verde);
+    tiraSkills.setPixelColor(skillsOnOff[i], rojo);
     tiraSkills.show();
     }
     Serial.print(F("skill  : "));
