@@ -10,6 +10,25 @@ int poten = A0;
 int bestia = 0;
 const int ledPorBestia = (puntosLed/numBestias);
 
+int const skillsNum = 6;
+int skillsPin[skillsNum] = {2, 3, 4, 5, 6, 7};
+
+void pinM(){ 
+  for (int i = 0; i <= skillsNum-1; i++) {
+    pinMode(skillsPin[i], INPUT_PULLUP);
+  }  
+}
+
+void pinMcomp(){ 
+  for (int i = 0; i <= skillsNum-1; i++) {
+  Serial.print(F("numero pin _ "));
+  Serial.print(skillsPin[i]);
+  Serial.print(F("  estado de boton _ "));
+  Serial.println(digitalRead(skillsPin[i]));
+  }  
+}
+
+
 
 //tiras -------------------
 Adafruit_NeoPixel tiraBestias = Adafruit_NeoPixel(puntosLed, pinBestias, NEO_GRB + NEO_KHZ800);
@@ -21,6 +40,8 @@ void iniled() {
   tiraBestias.clear();
 }
 
+
+
 const uint32_t verde = Adafruit_NeoPixel::Color(5, 250, 5);
 const uint32_t azul = Adafruit_NeoPixel::Color(5, 5, 250);
 const uint32_t rojo = Adafruit_NeoPixel::Color(250, 5, 5);
@@ -31,7 +52,7 @@ void hombreLobo(){
   int posicion = 1;
   int factor = posicion-1;
   for (int i = 0+factor*ledPorBestia; i <= ledPorBestia*posicion; i++) {
-    tiraBestias.setPixelColor(i, azul);
+    tiraBestias.setPixelColor(i, verde);
       tiraBestias.show();
   }
 }
@@ -67,7 +88,9 @@ void serpiente(){
 void selector() {
     int rosca = analogRead(A0);
     int bestia = map(rosca, 0, 1030, 1, numBestias+1);
-    Serial.println(rosca);
+    Serial.print(F("rosca = "));
+    Serial.print(rosca);
+  Serial.print(F(" / num Bestia = "));
     Serial.println(bestia);
 
   int posicion = bestia;
@@ -80,14 +103,58 @@ void selector() {
       tiraBestias.clear();
 }
 
+void exitoLobo() {
+  int loboOK[] = { 1, 1, 1, 0, 0, 0};
+  int total = skillsNum;
+  int exito = 0;
+  for (int i = 0; i <= total-1 ; i++) {
+    if (digitalRead(skillsPin[i]) == loboOK[i]) {
+    exito++;
+    Serial.print(i);
+    Serial.println(F(" // Coincidencia //"));  
+    }
+    else {
+    Serial.print(i);
+    Serial.println(F(" // Falla //"));
+    } 
+  }
+  if (exito == total) {hombreLobo();}
+}
+
+void exitoAracne() {
+  int aracneOK[] = { 0, 0, 1, 0, 0, 1};
+  int total = skillsNum;
+  int exito = 0;
+  for (int i = 0; i <= total-1 ; i++) {
+    if (digitalRead(skillsPin[i]) == aracneOK[i]) {
+    exito++;
+    Serial.print(i);
+    Serial.println(F(" // Coincidencia //"));  
+    }
+    else {
+    Serial.print(i);
+    Serial.println(F(" // Falla //"));
+    } 
+  }
+  if (exito == total) {aracne();}
+}
+
+
+
+
 void setup()
 {
   Serial.begin(9600);
-  Serial.println("++Starting Cielo++");
+  Serial.println(F(" "));
+  Serial.println(F("++ Cazando Bestias ++"));
   iniled();
+  pinM();
 }
 
 void loop()
 {
   selector(); 
+  pinMcomp();
+  exitoLobo();
+  exitoAracne();
 }
