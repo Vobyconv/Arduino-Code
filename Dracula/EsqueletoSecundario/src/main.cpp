@@ -58,13 +58,9 @@ const uint8_t BOX_BRIGHTNESS = 160;
  * Control pins and relays.
  */
 
-const uint8_t PIN_OUTPUT_RELAY_PRIMARY = 12;
-const uint8_t PIN_OUTPUT_RELAY_SECONDARY = A0;
-const uint8_t PIN_INPUT_COMPLETION_SECONDARY = A1;
-const uint8_t PIN_OUTPUT_ACTIVATION_BATS = A2;
-const uint8_t PIN_INPUT_COMPLETION_BATS = A3;
+const uint8_t PIN_OUTPUT_COMPLETION = 12;
+const uint8_t PIN_INPUT_COMPLETION_BATS = A0;
 
-Atm_digital digitalInputCompletionSecondary;
 Atm_digital digitalInputCompletionBats;
 
 /**
@@ -80,20 +76,16 @@ String currentTags[NUM_READERS];
 typedef struct programState
 {
   unsigned int emptyReadCount[NUM_READERS];
-  bool isPrimaryComplete;
-  bool isSecondaryComplete;
   bool isBatsStageComplete;
-  bool flagBatsActivation;
-  bool flagRelayUpdate;
+  bool flagRfidCompletion;
+  bool flagLedBoxUpdate;
 } ProgramState;
 
 ProgramState progState = {
     .emptyReadCount = {0, 0, 0, 0},
-    .isPrimaryComplete = false,
-    .isSecondaryComplete = false,
     .isBatsStageComplete = false,
-    .flagBatsActivation = false,
-    .flagRelayUpdate = false};
+    .flagRfidCompletion = false,
+    .flagLedBoxUpdate = false};
 
 void initState()
 {
@@ -102,11 +94,9 @@ void initState()
     progState.emptyReadCount[i] = 0;
   }
 
-  progState.isPrimaryComplete = false;
-  progState.isSecondaryComplete = false;
   progState.isBatsStageComplete = false;
-  progState.flagBatsActivation = false;
-  progState.flagRelayUpdate = false;
+  progState.flagRfidCompletion = false;
+  progState.flagLedBoxUpdate = false;
 }
 
 void lockRelay(uint8_t pin)
@@ -145,12 +135,6 @@ void setOpenDrainOutput(uint8_t pin, bool value)
   }
 }
 
-void onSecondaryCompletion(int idx, int v, int up)
-{
-  Serial.println(F("Pulse from secondary RFID"));
-  progState.isSecondaryComplete = true;
-}
-
 void onBatsCompletion(int idx, int v, int up)
 {
   Serial.println(F("Pulse from bats"));
@@ -159,17 +143,11 @@ void onBatsCompletion(int idx, int v, int up)
 
 void initControlPins()
 {
-  initRelay(PIN_OUTPUT_RELAY_PRIMARY);
-  initRelay(PIN_OUTPUT_RELAY_SECONDARY);
-  setOpenDrainOutput(PIN_OUTPUT_ACTIVATION_BATS, false);
+  setOpenDrainOutput(PIN_OUTPUT_COMPLETION, false);
 
   const int minDurationMs = 500;
   const bool activeLow = false;
   const bool pullUp = true;
-
-  digitalInputCompletionSecondary
-      .begin(PIN_INPUT_COMPLETION_SECONDARY, minDurationMs, activeLow, pullUp)
-      .onChange(HIGH, onSecondaryCompletion);
 
   digitalInputCompletionBats
       .begin(PIN_INPUT_COMPLETION_BATS, minDurationMs, activeLow, pullUp)
@@ -285,56 +263,29 @@ void initLedStrips()
 
 void onTimerState(int idx, int v, int up)
 {
-  bool rfidComplete = progState.isPrimaryComplete || progState.isSecondaryComplete;
-
-  // If the RFID stage is complete, we need to activate the bats controller
-  if (rfidComplete)
-  {
-    setOpenDrainOutput(PIN_OUTPUT_ACTIVATION_BATS, true);
-
-    if (!progState.flagBatsActivation)
-    {
-      ledStrips.setMode(FX_MODE_COLOR_WIPE);
-      ledStrips.setBrightness(STRIP_BRIGHTNESS);
-      progState.flagBatsActivation = true;
-    }
-  }
-
-  // If the RFID stage is still pending, we have to poll the RFID readers
-  if (!rfidComplete)
+  if (!progState.flagRfidCompletion)
   {
     pollRfidReaders();
     printCurrentTags();
 
     if (isTagsStateValid())
     {
-      Serial.println(F("Primary RFID OK"));
-      progState.isPrimaryComplete = true;
+      Serial.println(F("Setting completion flag"));
+      setOpenDrainOutput(PIN_OUTPUT_COMPLETION, true);
+      ledStrips.setMode(FX_MODE_COLOR_WIPE);
+      ledStrips.setBrightness(STRIP_BRIGHTNESS);
+      progState.flagRfidCompletion = true;
     }
   }
 
-  // If both the RFID and bats stages are complete, we need to update the relays
-  if (rfidComplete && progState.isBatsStageComplete)
+  if (progState.flagRfidCompletion && progState.isBatsStageComplete && !progState.flagLedBoxUpdate)
   {
-    if (progState.isSecondaryComplete)
-    {
-      lockRelay(PIN_OUTPUT_RELAY_PRIMARY);
-      openRelay(PIN_OUTPUT_RELAY_SECONDARY);
-    }
-    else
-    {
-      openRelay(PIN_OUTPUT_RELAY_PRIMARY);
-      lockRelay(PIN_OUTPUT_RELAY_SECONDARY);
-    }
-
-    if (!progState.flagRelayUpdate)
-    {
-      ledBox.setSpeed(BOX_SPEED);
-      ledBox.setBrightness(BOX_BRIGHTNESS);
-      progState.flagRelayUpdate = true;
-    }
+    Serial.println(F("Updating box LED"));
+    ledBox.setSpeed(BOX_SPEED);
+    ledBox.setBrightness(BOX_BRIGHTNESS);
+    progState.flagLedBoxUpdate = true;
   }
-  else if (!rfidComplete && progState.isBatsStageComplete)
+  else if (!progState.flagRfidCompletion && progState.isBatsStageComplete)
   {
     Serial.println(F("Warn: Bats HIGH but RFID pending"));
   }
