@@ -3,9 +3,9 @@
 #include <Adafruit_NeoPixel.h>
 
 //Ordenes basicas ---------------------
-int pinBestias = 12;
-int puntosLed = 20;
-int pinLedSkills = 10;
+int pinBestias = 10;
+int puntosLed = 36;
+int pinLedSkills = 12;
 int puntosLedSkills = 12;
 
 int numBestias = 4;
@@ -15,7 +15,7 @@ const int ledPorBestia = (puntosLed/numBestias);
 
 int const skillsNum = 12;
 int skillsPin[skillsNum] = {2, 3, 4, 5, 6, 7, 8, A1, A2, A3, A4, A5};
-
+int apuntado[4] = { 3, 12, 21, 30};
 void pinM(){ 
   for (int i = 0; i <= skillsNum-1; i++) {
     pinMode(skillsPin[i], INPUT_PULLUP);
@@ -48,14 +48,14 @@ void iniled() {
   tiraSkills.clear();
 }
 
-
-
 const uint32_t verde = Adafruit_NeoPixel::Color(5, 250, 5);
 const uint32_t azul = Adafruit_NeoPixel::Color(5, 5, 250);
 const uint32_t rojo = Adafruit_NeoPixel::Color(250, 5, 5);
 const uint32_t amarillo = Adafruit_NeoPixel::Color(250, 250, 5);
 const uint32_t blanco = Adafruit_NeoPixel::Color(200, 200, 200);
-  
+const uint32_t naranja = Adafruit_NeoPixel::Color(250, 50, 5);
+
+
 void hombreLobo(){
   int posicion = 1;
   int factor = posicion-1;
@@ -78,7 +78,7 @@ void chupacabras(){
   int posicion = 3;
   int factor = posicion-1;
   for (int i = 0+factor*ledPorBestia; i <= ledPorBestia*posicion; i++) {
-    tiraBestias.setPixelColor(i, rojo);
+    tiraBestias.setPixelColor(i, naranja);
     tiraBestias.show();
   }
 }
@@ -98,17 +98,17 @@ void selector() {
     int bestia = map(rosca, 0, 1030, 1, numBestias+1);
     Serial.print(F("rosca = "));
     Serial.print(rosca);
-  Serial.print(F(" / num Bestia = "));
+    Serial.print(F(" / num Bestia = "));
     Serial.println(bestia);
 
   int posicion = bestia;
   int factor = posicion-1;
   
-    for (int i = 0+factor*ledPorBestia; i <= ledPorBestia*posicion; i++) {
-    tiraBestias.setPixelColor(i, azul);
+    //for (int i = 0+factor*ledPorBestia; i <= ledPorBestia*posicion; i++) {
+    tiraBestias.setPixelColor(apuntado[bestia-1], azul);
     tiraBestias.show();
-    }
-      tiraBestias.clear();
+    //}
+    tiraBestias.clear();
 }
 
 void exitoLobo() {
@@ -158,7 +158,7 @@ void exitoAracne() {
     tiraSkills.show();
     }
     else {
-    tiraSkills.setPixelColor(skillsOnOff[i], rojo);
+    tiraSkills.setPixelColor(skillsOnOff[i], naranja);
     tiraSkills.show();
     }
     Serial.print(F("skill  : "));
@@ -183,6 +183,6 @@ void loop()
   pruebaSkills();
   selector(); 
   pinMcomp();
-  exitoLobo();
-  exitoAracne();
+ // exitoLobo();
+ // exitoAracne();
 }
