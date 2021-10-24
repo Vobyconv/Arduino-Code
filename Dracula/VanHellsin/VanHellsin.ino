@@ -285,8 +285,16 @@ void exitoTodos() {
 }
 
 void openReles(){
-  if (victorias[1]+victorias[2]+victorias[3]+victorias[4] == 2){
+  if (victorias[1]+victorias[2]+victorias[3]+victorias[4] >= 2){
   digitalWrite(rele01, HIGH);  
+  Serial.println(F(" Open01 "));
+  }
+  if (victorias[1]+victorias[2]+victorias[3]+victorias[4] >= 3){
+  digitalWrite(rele01, HIGH);  
+  Serial.println(F(" Open02 "));
+  }
+  if (victorias[1]+victorias[2]+victorias[3]+victorias[4] >= 4){
+  digitalWrite(rele03, HIGH);  
   Serial.println(F(" Open01 "));
   }
 }
