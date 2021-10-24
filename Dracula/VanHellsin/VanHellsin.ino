@@ -7,6 +7,9 @@ int pinBestias = 10;
 int puntosLed = 36;
 int pinLedSkills = 12;
 int puntosLedSkills = 12;
+int rele01 = 9;
+int rele02 = 11;
+int rele03 = 13;
 
 const int numBestias = 4;
 int poten = A0;
@@ -23,6 +26,12 @@ void pinM(){
   for (int i = 0; i <= skillsNum-1; i++) {
     pinMode(skillsPin[i], INPUT_PULLUP);
   }  
+}
+
+void pinR(){ 
+    pinMode(rele01, OUTPUT);
+    pinMode(rele02, OUTPUT);
+    pinMode(rele03, OUTPUT);
 }
 
 void pinMcomp(){ 
@@ -128,28 +137,30 @@ void exitoAracne() {
   int exito = 0;
   
   if (bestia == 1){
-  for (int i = 0; i <= total-1 ; i++) {
-    if (digitalRead(skillsPin[i]) == aracneOK[i]) {
-    exito++;
-  //  Serial.print(i);
-  //  Serial.println(F(" // Coincidencia //"));  
+    for (int i = 0; i <= total-1 ; i++) {
+      if (digitalRead(skillsPin[i]) == aracneOK[i]) {
+      exito++;
+      //  Serial.print(i);
+      //  Serial.println(F(" // Coincidencia //"));  
+      }
+      else {
+      // Serial.print(i);
+      // Serial.println(F(" // Falla //"));
+      } 
+      }
+    if (exito == total) {
+    victorias[bestia] = 1;
     }
-    else {
-  // Serial.print(i);
-  // Serial.println(F(" // Falla //"));
-    } 
   }
-  if (exito == total) {
-  victorias[bestia] = 1;
-  }
-  }
-  if (victorias[1] == 1) {
+ 
+  if (victorias[0] == 1) {
   aracneOn();
   }
+  
   Serial.print(F("victoria  -  "));
   Serial.print(bestia);
   Serial.print(F(" /  estado  -  "));
-  Serial.println(victorias[bestia]);
+  Serial.println(victorias[bestia-1]);
 }
 
 void exitoMosca() {
@@ -157,28 +168,30 @@ void exitoMosca() {
   int exito = 0;
   
   if (bestia == 2){
-  for (int i = 0; i <= total-1 ; i++) {
-    if (digitalRead(skillsPin[i]) == moscaOK[i]) {
-    exito++;
+    for (int i = 0; i <= total-1 ; i++) {
+      if (digitalRead(skillsPin[i]) == moscaOK[i]) {
+      exito++;
   //  Serial.print(i);
   //  Serial.println(F(" // Coincidencia //"));  
-    }
-    else {
+      }
+      else {
   // Serial.print(i);
   // Serial.println(F(" // Falla //"));
-    } 
-  }
+      } 
+    }
+ 
   if (exito == total) {
   victorias[bestia] = 1;
   }
   }
-  if (victorias[2] == 1) {
+ 
+  if (victorias[1] == 1) {
   moscaOn();
   }
   Serial.print(F("victoria  -  "));
   Serial.print(bestia);
   Serial.print(F(" /  estado  -  "));
-  Serial.println(victorias[bestia]);
+  Serial.println(victorias[bestia-1]);
 }
   
 void exitoLobo() {
@@ -186,57 +199,59 @@ void exitoLobo() {
   int exito = 0;
   
   if (bestia == 3){
-  for (int i = 0; i <= total-1 ; i++) {
-    if (digitalRead(skillsPin[i]) == loboOK[i]) {
-    exito++;
-  //  Serial.print(i);
-  //  Serial.println(F(" // Coincidencia //"));  
+    for (int i = 0; i <= total-1 ; i++) {
+      if (digitalRead(skillsPin[i]) == loboOK[i]) {
+      exito++;
+      //  Serial.print(i);
+      //  Serial.println(F(" // Coincidencia //"));  
+      }
+      else {
+      // Serial.print(i);
+      // Serial.println(F(" // Falla //"));
+      } 
     }
-    else {
-  // Serial.print(i);
-  // Serial.println(F(" // Falla //"));
-    } 
-  }
+  
   if (exito == total) {
   victorias[bestia] = 1;
   }
   }
-  if (victorias[3] == 1) {
+  
+  if (victorias[2] == 1) {
   loboOn();
   }
   Serial.print(F("victoria  -  "));
   Serial.print(bestia);
   Serial.print(F(" /  estado  -  "));
-  Serial.println(victorias[bestia]);
+  Serial.println(victorias[bestia-1]);
 }
 
 void exitoChupacabras() {
   int total = skillsNum;
   int exito = 0;
   
-  if (bestia == 1){
-  for (int i = 0; i <= total-1 ; i++) {
-    if (digitalRead(skillsPin[i]) == chupacabrasOK[i]) {
-    exito++;
-  //  Serial.print(i);
-  //  Serial.println(F(" // Coincidencia //"));  
+  if (bestia == 4){
+    for (int i = 0; i <= total-1 ; i++) {
+      if (digitalRead(skillsPin[i]) == chupacabrasOK[i]) {
+      exito++;
+      //  Serial.print(i);
+      //  Serial.println(F(" // Coincidencia //"));  
+      }
+      else {
+      // Serial.print(i);
+      // Serial.println(F(" // Falla //"));
+      }
     }
-    else {
-  // Serial.print(i);
-  // Serial.println(F(" // Falla //"));
-    } 
+    if (exito == total) {
+    victorias[bestia] = 1;
+    }
   }
-  if (exito == total) {
-  victorias[bestia] = 1;
-  }
-  }
-  if (victorias[4] == 1) {
+  if (victorias[3] == 1) {
   chupacabrasOn();
   }
   Serial.print(F("victoria  -  "));
   Serial.print(bestia);
   Serial.print(F(" /  estado  -  "));
-  Serial.println(victorias[bestia]);
+  Serial.println(victorias[bestia-1]);
 }
 
 void exitoTodos() {
@@ -269,6 +284,13 @@ void exitoTodos() {
     }
 }
 
+void openReles(){
+  if (victorias[1]+victorias[2]+victorias[3]+victorias[4] == 2){
+  digitalWrite(rele01, HIGH);  
+  Serial.println(F(" Open01 "));
+  }
+}
+
 
 void setup()
 {
@@ -277,6 +299,7 @@ void setup()
   Serial.println(F("++ Cazando Bestias ++"));
   iniled();
   pinM();
+  pinR();
 }
 
 void loop()
@@ -285,4 +308,6 @@ void loop()
   selector(); 
   pinMcomp();
   exitoTodos();
+  openReles();
+  digitalWrite(rele02, HIGH);
 }
