@@ -149,7 +149,7 @@ void exitoAracne() {
       } 
       }
     if (exito == total) {
-    victorias[bestia] = 1;
+    victorias[bestia-1] = 1;
     }
   }
  
@@ -181,7 +181,7 @@ void exitoMosca() {
     }
  
   if (exito == total) {
-  victorias[bestia] = 1;
+  victorias[bestia-1] = 1;
   }
   }
  
@@ -212,7 +212,7 @@ void exitoLobo() {
     }
   
   if (exito == total) {
-  victorias[bestia] = 1;
+  victorias[bestia-1] = 1;
   }
   }
   
@@ -242,7 +242,7 @@ void exitoChupacabras() {
       }
     }
     if (exito == total) {
-    victorias[bestia] = 1;
+    victorias[bestia-1] = 1;
     }
   }
   if (victorias[3] == 1) {
@@ -295,7 +295,7 @@ void openReles(){
   }
   if (victorias[1]+victorias[2]+victorias[3]+victorias[4] >= 4){
   digitalWrite(rele03, HIGH);  
-  Serial.println(F(" Open01 "));
+  Serial.println(F(" Open03 "));
   }
 }
 
@@ -317,5 +317,4 @@ void loop()
   pinMcomp();
   exitoTodos();
   openReles();
-  digitalWrite(rele02, HIGH);
 }
