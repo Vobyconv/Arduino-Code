@@ -12,7 +12,6 @@ bool isRelayOpen = false;
 const int NUM_MURCIELAGOS = 7;
 const int NUM_LEDS = 2;
 
-// Ordenes basicas
 int tiraEyes = 10;
 int puntosEyes = 14;
 int sensibilidad = 6;
@@ -61,7 +60,6 @@ void setOpenDrainOutput(uint8_t pin, bool value)
   }
 }
 
-// Inicio de tiras led
 void initLeds()
 {
   stripBat.begin();
@@ -70,7 +68,6 @@ void initLeds()
   stripBat.clear();
 }
 
-// Funciones de murcielagos
 void batDark(int murci)
 {
   int chillido = random(0, 50);
@@ -214,8 +211,8 @@ void ojitos()
 
 void updateActivationState()
 {
-  const int readDelay = 200;
-  const int numReads = 10;
+  const int readDelayMs = 200;
+  const int numReads = 15;
 
   for (int i = 0; i < numReads; i++)
   {
@@ -224,10 +221,10 @@ void updateActivationState()
       return;
     }
 
-    delay(readDelay);
+    delay(readDelayMs);
   }
 
-  Serial.println(F("Read activation pulse"));
+  Serial.println(F("Detected activation pulse"));
   isActive = true;
 }
 
@@ -242,6 +239,8 @@ void setup()
 
 void loop()
 {
+  const int delayLoopMs = 80;
+
   if (isActive)
   {
     if (isRelayOpen)
@@ -254,8 +253,9 @@ void loop()
       murcielagos();
       releOpen();
       setOpenDrainOutput(PIN_OUTPUT_RELAY, false);
-      delay(80);
     }
+
+    delay(delayLoopMs);
   }
   else
   {
