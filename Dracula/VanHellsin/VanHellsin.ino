@@ -9,7 +9,6 @@ int pinLedSkills = 12;
 int puntosLedSkills = 12;
 int rele01 = 9;
 int rele02 = 11;
-int rele03 = 13;
 
 const int numBestias = 4;
 int poten = A0;
@@ -31,7 +30,6 @@ void pinM(){
 void pinR(){ 
     pinMode(rele01, OUTPUT);
     pinMode(rele02, OUTPUT);
-    pinMode(rele03, OUTPUT);
 }
 
 void pinMcomp(){ 
@@ -55,7 +53,7 @@ void iniled() {
   tiraBestias.clear();
   
   tiraSkills.begin();
-  tiraSkills.setBrightness(100);
+  tiraSkills.setBrightness(30);
   tiraSkills.show();
   tiraSkills.clear();
 }
@@ -65,13 +63,13 @@ const uint32_t azul = Adafruit_NeoPixel::Color(5, 5, 250);
 const uint32_t rojo = Adafruit_NeoPixel::Color(250, 5, 5);
 const uint32_t amarillo = Adafruit_NeoPixel::Color(250, 250, 5);
 const uint32_t blanco = Adafruit_NeoPixel::Color(200, 200, 200);
-const uint32_t naranja = Adafruit_NeoPixel::Color(250, 50, 5);
+const uint32_t naranja = Adafruit_NeoPixel::Color(150, 50, 5);
 
 
 void aracneOn(){
   int posicion = 1;
   int factor = posicion-1;
-  for (int i = 0+factor*ledPorBestia; i <= ledPorBestia*posicion; i++) {
+  for (int i = 0; i <= 8; i++) {
     tiraBestias.setPixelColor(i, verde);
       tiraBestias.show();
   }
@@ -80,34 +78,34 @@ void aracneOn(){
 void moscaOn(){
   int posicion = 2;
   int factor = posicion-1;
-  for (int i = 0+factor*ledPorBestia; i <= ledPorBestia*posicion; i++) {
-    tiraBestias.setPixelColor(i, amarillo);
-      tiraBestias.show();
-  }
-}
-
-void loboOn(){
-  int posicion = 3;
-  int factor = posicion-1;
-  for (int i = 0+factor*ledPorBestia; i <= ledPorBestia*posicion; i++) {
+  for (int i = 9; i <= 17; i++) {
     tiraBestias.setPixelColor(i, verde);
       tiraBestias.show();
   }
 }
 
 void chupacabrasOn(){
-  int posicion = 4;
+  int posicion = 3;
   int factor = posicion-1;
-  for (int i = 0+factor*ledPorBestia; i <= ledPorBestia*posicion; i++) {
-    tiraBestias.setPixelColor(i, naranja);
+  for (int i = 18; i <= 26; i++) {
+    tiraBestias.setPixelColor(i, verde);
     tiraBestias.show();
   }
 }
+
+void loboOn(){
+  int posicion = 4;
+  int factor = posicion-1;
+  for (int i = 27; i <= 36; i++) {
+    tiraBestias.setPixelColor(i, verde);
+      tiraBestias.show();
+  }
+}
 // numeracion  -------  1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12
-int aracneOK[] =      { 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0};
-int moscaOK[] =       { 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1};
-int loboOK[] =        { 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0};
-int chupacabrasOK[] = { 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0};
+int aracneOK[] =      { 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1};
+int moscaOK[] =       { 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0};
+int loboOK[] =        { 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1};
+int chupacabrasOK[] = { 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1};
 
 
 //Selector ------
@@ -123,9 +121,14 @@ void selector() {
   int factor = posicion-1;
   
     //for (int i = 0+factor*ledPorBestia; i <= ledPorBestia*posicion; i++) {
-    tiraBestias.setPixelColor(apuntado[bestia-1], azul);
+    tiraBestias.setPixelColor(apuntado[bestia-1], blanco);
+    tiraBestias.setPixelColor(apuntado[bestia-1]+1, blanco);
+    tiraBestias.setPixelColor(apuntado[bestia-1]-1, blanco);
+    tiraBestias.setPixelColor(apuntado[bestia-1]+2, blanco);
+    tiraBestias.setPixelColor(apuntado[bestia-1]-2, blanco);
     tiraBestias.show();
     //}
+    delay(500);
     tiraBestias.clear();
 }
 
@@ -194,11 +197,41 @@ void exitoMosca() {
   Serial.println(victorias[bestia-1]);
 }
   
-void exitoLobo() {
+
+void exitoChupacabras() {
   int total = skillsNum;
   int exito = 0;
   
   if (bestia == 3){
+    for (int i = 0; i <= total-1 ; i++) {
+      if (digitalRead(skillsPin[i]) == chupacabrasOK[i]) {
+      exito++;
+      //  Serial.print(i);
+      //  Serial.println(F(" // Coincidencia //"));  
+      }
+      else {
+      // Serial.print(i);
+      // Serial.println(F(" // Falla //"));
+      }
+    }
+    if (exito == total) {
+    victorias[bestia-1] = 1;
+    }
+  }
+  if (victorias[2] == 1) {
+  chupacabrasOn();
+  }
+  Serial.print(F("victoria  -  "));
+  Serial.print(bestia);
+  Serial.print(F(" /  estado  -  "));
+  Serial.println(victorias[bestia-1]);
+}
+
+void exitoLobo() {
+  int total = skillsNum;
+  int exito = 0;
+  
+  if (bestia == 4){
     for (int i = 0; i <= total-1 ; i++) {
       if (digitalRead(skillsPin[i]) == loboOK[i]) {
       exito++;
@@ -216,37 +249,8 @@ void exitoLobo() {
   }
   }
   
-  if (victorias[2] == 1) {
-  loboOn();
-  }
-  Serial.print(F("victoria  -  "));
-  Serial.print(bestia);
-  Serial.print(F(" /  estado  -  "));
-  Serial.println(victorias[bestia-1]);
-}
-
-void exitoChupacabras() {
-  int total = skillsNum;
-  int exito = 0;
-  
-  if (bestia == 4){
-    for (int i = 0; i <= total-1 ; i++) {
-      if (digitalRead(skillsPin[i]) == chupacabrasOK[i]) {
-      exito++;
-      //  Serial.print(i);
-      //  Serial.println(F(" // Coincidencia //"));  
-      }
-      else {
-      // Serial.print(i);
-      // Serial.println(F(" // Falla //"));
-      }
-    }
-    if (exito == total) {
-    victorias[bestia-1] = 1;
-    }
-  }
   if (victorias[3] == 1) {
-  chupacabrasOn();
+  loboOn();
   }
   Serial.print(F("victoria  -  "));
   Serial.print(bestia);
@@ -269,34 +273,34 @@ void exitoTodos() {
   int skillsOnOff[skillsNum] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};  
    
   for (int i = 0; i < skillsNum; i++) {
-    if (digitalRead(skillsPin[i]) == 1) {
-    tiraSkills.setPixelColor(skillsOnOff[i], verde);
-    tiraSkills.show();
-    }
-    else {
+    if (digitalRead(skillsPin[i]) == 0) {
     tiraSkills.setPixelColor(skillsOnOff[i], naranja);
     tiraSkills.show();
     }
-  //  Serial.print(F("skill  : "));
-  //  Serial.print(skillsOnOff[i]);
-  //  Serial.print(F(" / valor  : "));
-  //  Serial.println(digitalRead(skillsPin[i]));
+    else {
+    tiraSkills.setPixelColor(skillsOnOff[i], verde);
+    tiraSkills.show();
+    }
+    Serial.print(F("skill  : "));
+    Serial.print(skillsOnOff[i]);
+    Serial.print(F(" / valor  : "));
+    Serial.println(digitalRead(skillsPin[i]));
     }
 }
 
 void openReles(){
-  if (victorias[1]+victorias[2]+victorias[3]+victorias[4] >= 2){
-  digitalWrite(rele01, HIGH);  
-  Serial.println(F(" Open01 "));
-  }
-  if (victorias[1]+victorias[2]+victorias[3]+victorias[4] >= 3){
+  int solucion = victorias[1]+victorias[2]+victorias[3]+victorias[0];
+  Serial.print(F("solucion  : "));
+  Serial.println(solucion);
+  if (solucion == 2){
   digitalWrite(rele01, HIGH);  
   Serial.println(F(" Open02 "));
   }
-  if (victorias[1]+victorias[2]+victorias[3]+victorias[4] >= 4){
-  digitalWrite(rele03, HIGH);  
-  Serial.println(F(" Open03 "));
+  if (solucion == 4){
+  digitalWrite(rele02, HIGH);  
+  Serial.println(F(" Open01 "));
   }
+ 
 }
 
 
@@ -317,4 +321,5 @@ void loop()
   pinMcomp();
   exitoTodos();
   openReles();
+  
 }
