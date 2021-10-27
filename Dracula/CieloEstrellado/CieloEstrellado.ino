@@ -5,7 +5,7 @@
 //Ordenes basicas ---------------------
 int ledCielo = 9;
 int rele = 12;
-int estrellas = 120;
+int estrellas = 135;
 int wait = 200;
 
 //pines de pulsadores
@@ -27,19 +27,19 @@ const uint32_t Blanco = Adafruit_NeoPixel::Color(200, 200, 200);
 //Contadores de victoria
 int solucion = 2;
 int solucionNum[] = { 1, 2, 3, 4, 5, 6, 7, 8};
-int openRele[] = { true, true, false, false, false, false, false, false};
+int openRele[] = { false, true, false, true, true, false, false, false};
 int openAll = 0;
 
 //puntitos de las constelaciones
-const int numPtsConst = 8;
+const int numPtsConst = 9;
 const int constelLeds0[numPtsConst] = { 0, 1, 2, 3, 4, 5, 6, 7};
-const int constelLeds1[numPtsConst] = { 19, 20, 21, 22, 23, 24, 25, 26};
+const int constelLeds1[numPtsConst] = { 19, 20, 21, 22, 23, 24, 25, 26, 27};
 const int constelLeds2[numPtsConst] = { 38, 39, 40, 41, 42, 43, 44, 45};
-const int constelLeds3[numPtsConst] = { 52, 53, 54, 55, 56, 57, 58, 59};
-const int constelLeds4[numPtsConst] = { 68, 69, 70, 71, 72, 73, 74, 75};
+const int constelLeds3[numPtsConst] = { 52, 53, 54, 55, 56, 57, 58, 59, 60};
+const int constelLeds4[numPtsConst] = { 67, 68, 69, 70, 71, 72, 73, 74, 75};
 const int constelLeds5[numPtsConst] = { 81, 82, 83, 84, 85, 86, 87, 88};
 const int constelLeds6[numPtsConst] = { 103, 104, 105, 106, 107, 108, 109, 110};
-const int constelLeds7[numPtsConst] = { 120, 121, 122, 123, 124, 125, 126, 127};
+const int constelLeds7[numPtsConst] = { 120, 121, 122, 123, 124, 125, 126, 127, 128};
 
 // Funciones de constelaciones
 void Constel_0_on(){
@@ -47,7 +47,7 @@ void Constel_0_on(){
       stripCielo.setPixelColor(constelLeds0[i], Azul);
       stripCielo.show();
   }
-      Serial.print(" / * TrollLED - ON * / ");
+      Serial.print(F(" / * TrollLED - ON * / "));
 }
 
 void Constel_0_off(){
@@ -56,7 +56,7 @@ void Constel_0_off(){
       stripCielo.setPixelColor(constelLeds0[i], Blanco);
       stripCielo.show();
   }
-      Serial.print(" / * TrollLED - OFF * / ");
+      Serial.print(F(" / * TrollLED - OFF * / "));
 }
 //--
 void Constel_1_on(){
@@ -64,7 +64,7 @@ void Constel_1_on(){
       stripCielo.setPixelColor(constelLeds1[i], Azul);
       stripCielo.show();
   }
-      Serial.print(" / * VacaLED - ON * / ");
+      Serial.print(F(" / * VacaLED - ON * / "));
 }
 
 void Constel_1_off(){
@@ -73,7 +73,7 @@ void Constel_1_off(){
       stripCielo.setPixelColor(constelLeds1[i], Blanco);
       stripCielo.show();
   }
-      Serial.print(" / * VacaLED - OFF * / ");
+      Serial.print(F(" / * VacaLED - OFF * / "));
 }
 //--
 void Constel_2_on(){
@@ -81,7 +81,7 @@ void Constel_2_on(){
       stripCielo.setPixelColor(constelLeds2[i], Azul);
       stripCielo.show();
   }
-      Serial.print(" / * OsoLED - ON * / ");
+      Serial.print(F(" / * OsoLED - ON * / "));
 }
 
 void Constel_2_off(){
@@ -90,7 +90,7 @@ void Constel_2_off(){
       stripCielo.setPixelColor(constelLeds2[i], Blanco);
       stripCielo.show();
   }
-      Serial.print(" / * OsoLED - OFF * / ");
+      Serial.print(F(" / * OsoLED - OFF * / "));
 }
 //--
 void Constel_3_on(){
@@ -98,7 +98,7 @@ void Constel_3_on(){
       stripCielo.setPixelColor(constelLeds3[i], Azul);
       stripCielo.show();
   }
-      Serial.print(" / * MurteLed - ON * / ");
+      Serial.print(F(" / * MurteLed - ON * / "));
 }
 
 void Constel_3_off(){
@@ -107,7 +107,7 @@ void Constel_3_off(){
       stripCielo.setPixelColor(constelLeds3[i], Blanco);
       stripCielo.show();
   }
-      Serial.print(" / * MuerteLED - OFF * / ");
+      Serial.print(F(" / * MuerteLED - OFF * / "));
 }
 //--
 void Constel_4_on(){
@@ -115,7 +115,7 @@ void Constel_4_on(){
       stripCielo.setPixelColor(constelLeds4[i], Azul);
       stripCielo.show();
   }
-      Serial.print(" / * FocaLed - ON * / ");
+      Serial.print(F(" / * FocaLed - ON * / "));
 }
 
 void Constel_4_off(){
@@ -124,7 +124,7 @@ void Constel_4_off(){
       stripCielo.setPixelColor(constelLeds4[i], Blanco);
       stripCielo.show();
   }
-      Serial.print(" / * FocaLED - OFF * / ");
+      Serial.print(F(" / * FocaLED - OFF * / "));
 }
 
 //--
@@ -133,7 +133,7 @@ void Constel_5_on(){
       stripCielo.setPixelColor(constelLeds5[i], Azul);
       stripCielo.show();
   }
-      Serial.print(" / * BallenaLed - ON * / ");
+      Serial.print(F(" / * BallenaLed - ON * / "));
 }
 
 void Constel_5_off(){
@@ -142,7 +142,7 @@ void Constel_5_off(){
       stripCielo.setPixelColor(constelLeds5[i], Blanco);
       stripCielo.show();
   }
-      Serial.print(" / * BallenaLED - OFF * / ");
+      Serial.print(F(" / * BallenaLED - OFF * / "));
 }
 
 void Constel_6_on(){
@@ -150,7 +150,7 @@ void Constel_6_on(){
       stripCielo.setPixelColor(constelLeds6[i], Azul);
       stripCielo.show();
   }
-      Serial.print(" / * OtroLed - ON * / ");
+      Serial.print(F(" / * CocoLed - ON * / "));
 }
 
 void Constel_6_off(){
@@ -159,7 +159,7 @@ void Constel_6_off(){
       stripCielo.setPixelColor(constelLeds6[i], Blanco);
       stripCielo.show();
   }
-      Serial.print(" / * OtroLED - OFF * / ");
+      Serial.print(F(" / * CocoLED - OFF * / "));
 }
 
 void Constel_7_on(){
@@ -167,7 +167,7 @@ void Constel_7_on(){
       stripCielo.setPixelColor(constelLeds7[i], Azul);
       stripCielo.show();
   }
-      Serial.print(" / * PatoLed - ON * / ");
+      Serial.print(F(" / * PatoLed - ON * / "));
 }
 
 void Constel_7_off(){
@@ -176,7 +176,7 @@ void Constel_7_off(){
       stripCielo.setPixelColor(constelLeds7[i], Blanco);
       stripCielo.show();
   }
-      Serial.print(" / * PatoLED - OFF * / ");
+      Serial.print(F(" / * PatoLED - OFF * / "));
 }
 
 //inicio de tiras led
@@ -190,84 +190,84 @@ void iniled() {
 
 // El Troll  -------------------------------------
 void signoTroll() {
-  Serial.print("++Nivel Troll : ");
+  Serial.print(F("++Nivel Troll : "));
     int pulsa0 = analogRead(A0);
     int trollLevel = map(pulsa0, 0, 1024, 0, 10);
        
         Serial.print(pulsa0);
-        Serial.print("/ medida: ");
+        Serial.print(F("/ medida: "));
         Serial.print(trollLevel);
         
     if (trollLevel >= 6) {
-    Serial.print(" / * Trollpush - UP * /");
+    Serial.print(F(" / * Trollpush - UP * /"));
     Constel_0_on();
     solucionNum[0] = true;
     }
     else {
-     Serial.print(" / * Trollpush - DOWN * /");
+     Serial.print(F(" / * Trollpush - DOWN * /"));
      Constel_0_off();
      solucionNum[0] = false;
     }
-Serial.println(" - Troll OVER - //");
+Serial.println(F(" - Troll OVER - //"));
 }
 
 // La Vaca  --------------------------------------------
 void signoVaca() {
-  Serial.print("++Nivel Vaca  : ");
+  Serial.print(F("++Nivel Vaca  : "));
       
     int pulsa1 = analogRead(A1);
     int vacaLevel = map(pulsa1, 0, 1024, 0, 10);
        Serial.print(pulsa1);
-       Serial.print("/ medida: ");
+       Serial.print(F("/ medida: "));
        Serial.print(vacaLevel);
   if (vacaLevel >= 6) {
-    Serial.print(" / * vacaPush - UP  * /");
+    Serial.print(F(" / * vacaPush - UP  * /"));
     Constel_1_on();
     solucionNum[1] = true;
     }
     else {
-    Serial.print(" / * VacaPush - DOWN * /");
+    Serial.print(F(" / * VacaPush - DOWN * /"));
     Constel_1_off();
     solucionNum[1] = false;
     }
-  Serial.println(" - Vaca OVER - //");
+  Serial.println(F(" - Vaca OVER - //"));
 }
 
 // El Oso  ------------------------------------------------
 void signoOso() {
-  Serial.print("++Nivel  Oso  : ");
+  Serial.print(F("++Nivel  Oso  : "));
     int pulsa2 = analogRead(A2);
     int osoLevel = map(pulsa2, 0, 1024, 0, 10);
     
         Serial.print(pulsa2);
-        Serial.print("/ medida: ");
+        Serial.print(F("/ medida: "));
         Serial.print(osoLevel);
         
     if (osoLevel >= 6) {
-    Serial.print(" / * OsoPush - UP * /");
+    Serial.print(F(" / * OsoPush - UP * /"));
     Constel_2_on();
     solucionNum[2] = true;
     }
     else {
-     Serial.print(" / * OsoPush - DOWN * /");
+     Serial.print(F(" / * OsoPush - DOWN * /"));
      Constel_2_off(); 
      solucionNum[2] = false;
     }
-Serial.println(" - Oso over - //");
+Serial.println(F(" - Oso over - //"));
 }
 
 // La Muerte  --------------------------------------------
 void signoMuerte() {
-  Serial.print("++Nivel Muerte : ");
+  Serial.print(F("++Nivel Muerte : "));
     int pulsa3 = analogRead(A3);
     int muerteLevel = map(pulsa3, 0, 1024, 0, 10);
        
         Serial.print(pulsa3);
-        Serial.print("/ medida: ");
+        Serial.print(F("/ medida: "));
         Serial.print(muerteLevel);
         
     if (muerteLevel >= 6) {
-    Serial.print(" / * Muertepush - UP * /");
+    Serial.print(F(" / * Muertepush - UP * /"));
     Constel_3_on();
     solucionNum[3] = true;
     }
@@ -277,103 +277,103 @@ void signoMuerte() {
      solucionNum[3] = false;
       
     }
-Serial.println(" - Muerte OVER - //");
+Serial.println(F(" - Muerte OVER - //"));
 }
 
 // La Foca  --------------------------------------------
 void signoFoca() {
   int orden = 4;
-  Serial.print("++Nivel Foca : ");
+  Serial.print(F("++Nivel Foca : "));
     int pulsa4 = analogRead(A4);
     int focaLevel = map(pulsa4, 0, 1024, 0, 10);
        
         Serial.print(pulsa4);
-        Serial.print("/ medida: ");
+        Serial.print(F("/ medida: "));
         Serial.print(focaLevel);
         
     if (focaLevel >= 6) {
-    Serial.print(" / * Focapush - UP * /");
+    Serial.print(F(" / * Focapush - UP * /"));
     Constel_4_on();
     solucionNum[4] = true;
     }
     else {
-     Serial.print(" / * Focapush - DOWN * /");
+     Serial.print(F(" / * Focapush - DOWN * /"));
      Constel_4_off();
      solucionNum[4] = false;   
     }
-Serial.println(" - Foca OVER - //");
+Serial.println(F(" - Foca OVER - //"));
 }
 
 // La Ballena  --------------------------------------------
 void signoBallena() {
   int orden = 5;
-  Serial.print("++Nivel Ballena : ");
+  Serial.print(F("++Nivel Ballena : "));
     int pulsa5 = analogRead(A5);
     int ballenaLevel = map(pulsa5, 0, 1024, 0, 10);
        
         Serial.print(pulsa5);
-        Serial.print("/ medida: ");
+        Serial.print(F("/ medida: "));
         Serial.print(ballenaLevel);
         
     if (ballenaLevel >= 6) {
-    Serial.print(" / * Ballenapush - UP * /");
+    Serial.print(F(" / * Ballenapush - UP * /"));
     Constel_5_on();
     solucionNum[5] = true;
     }
     else {
-     Serial.print(" / * Ballenapush - DOWN * /");
+     Serial.print(F(" / * Ballenapush - DOWN * /"));
      Constel_5_off();
      solucionNum[5] = false;   
     }
-Serial.println(" - Ballena OVER - //");
+Serial.println(F(" - Ballena OVER - //"));
 }
 
 // La Otra  --------------------------------------------
 void signoOtro() {
   int orden = 6;
-  Serial.print("++Nivel Otro : ");
+  Serial.print(F("++Nivel Coco : "));
     int pulsa6 = analogRead(A6);
     int otroLevel = map(pulsa6, 0, 1024, 0, 10);
        
         Serial.print(pulsa6);
-        Serial.print("/ medida: ");
+        Serial.print(F("/ medida: "));
         Serial.print(otroLevel);
         
     if (otroLevel >= 6) {
-    Serial.print(" / * Otropush - UP * /");
+    Serial.print(F(" / * Cocopush - UP * /"));
     Constel_6_on();
     solucionNum[6] = true;
     }
     else {
-     Serial.print(" / * Otropush - DOWN * /");
+     Serial.print(F(" / * Otropush - DOWN * /"));
      Constel_6_off();
      solucionNum[6] = false;   
     }
-Serial.println(" - Otro OVER - //");
+Serial.println(F(" - Coco OVER - //"));
 }
 
 // El Pato  --------------------------------------------
 void signoPato() {
   int orden = 7;
-  Serial.print("++Nivel Pato : ");
+  Serial.print(F("++Nivel Pato : "));
     int pulsa7 = analogRead(A7);
     int patoLevel = map(pulsa7, 0, 1024, 0, 10);
        
         Serial.print(pulsa7);
-        Serial.print("/ medida: ");
+        Serial.print(F("/ medida: "));
         Serial.print(patoLevel);
         
     if (patoLevel >= 6) {
-    Serial.print(" / * Patopush - UP * /");
+    Serial.print(F(" / * Patopush - UP * /"));
     Constel_7_on();
     solucionNum[7] = true;
     }
     else {
-     Serial.print(" / * Otropush - DOWN * /");
+     Serial.print(F(" / * Otropush - DOWN * /"));
      Constel_7_off();
      solucionNum[7] = false;   
     }
-Serial.println(" - Otro OVER - //");
+Serial.println(F(" - Otro OVER - //"));
 }
 
 //Condición de Victoria  --------------------------------
@@ -384,25 +384,25 @@ void pinM(){
 void blink() {
   digitalWrite(rele, HIGH);
   delay(1000); // Wait for 1000 millisecond(s)
-  digitalWrite(rele, LOW);
-  delay(1000); // Wait for 1000 millisecond(s)
+  //digitalWrite(rele, LOW);
+  //delay(1000); // Wait for 1000 millisecond(s)
 }
 
 void releOpen() {
-  int openAll = solucionNum[0]+solucionNum[1]+solucionNum[2]+solucionNum[3]+solucionNum[4]+solucionNum[5]+solucionNum[6]+solucionNum[7];
-  Serial.print("openAll: ");
+  //int openAll = solucionNum[0]+solucionNum[1]+solucionNum[2]+solucionNum[3]+solucionNum[4]+solucionNum[5]+solucionNum[6]+solucionNum[7];
+  Serial.print(F("openAll: "));
   Serial.println(openAll);
   int total = 8;
   int exito = 0;
-  for (int i = 0; i <= total ; i++) {
+  for (int i = 0; i <= total-1 ; i++) {
     if (solucionNum[i] == openRele[i]) {
     exito++;
     Serial.print(i);
-    Serial.println(" // Coincidencia //");
+    Serial.println(F(" // Coincidencia //"));
   }
   else {
   Serial.print(i);
-  Serial.println(" // Falla //");
+  Serial.println(F(" // Falla //"));
   }
   
   }
@@ -411,7 +411,8 @@ void releOpen() {
     Serial.println("Rele abierto");
   }
   else {
-  Serial.println("Rele cerrado");
+  digitalWrite(rele, LOW);
+  Serial.println(F("Rele cerrado"));
   }
 }
 
@@ -424,7 +425,7 @@ void noche() {
       stripCielo.setPixelColor(i, 100, 100, 105);
       stripCielo.show();
      }
-  Serial.println("+cielo+ OK:");
+  Serial.println(F("+cielo+ OK:"));
  }
 
 void constelaciones() {
@@ -441,7 +442,7 @@ void constelaciones() {
 void setup()
 {
   Serial.begin(9600);
-  Serial.println("++Starting Cielo++");
+  Serial.println(F("++Starting Cielo++"));
 
   iniled();
   pinM();
@@ -455,5 +456,5 @@ void loop()
 // Cielo 
   constelaciones();
   releOpen();
-  delay(100);
+  delay(500);
 }
