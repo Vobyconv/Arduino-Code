@@ -29,8 +29,8 @@ String currentTags[NUM_READERS];
 const int NUM_OPTIONS = 2;
 
 String validTags[NUM_READERS][NUM_OPTIONS] = {
-    { "67009CE0243F", "6400DC3BF576" },
-    { "67009CE0243F", "6400DC3BF576" }
+    { "67009CE02400", "6400DC3BF500" },
+    { "6400DC3BF500", "67009CE02400" }
 };
 
 /**
