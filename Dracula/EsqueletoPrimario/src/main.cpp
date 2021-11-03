@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <rdm630.h>
-#include <WS2812FX.h>
+#include <Adafruit_NeoPixel.h>
 #include <Automaton.h>
 
 /**
@@ -8,7 +8,7 @@
  */
 
 const uint8_t NUM_READERS = 4;
-const unsigned long RFID_READ_WAIT_MS = 250;
+const unsigned long RFID_READ_WAIT_MS = 500;
 
 // RX, TX
 
@@ -28,31 +28,33 @@ const unsigned int EMPTY_TOLERANCE = 1;
 const int NUM_OPTIONS = 1;
 
 String validTags[NUM_READERS][NUM_OPTIONS] = {
-    {"1D00278F8200"},
-    {"1D00277EC900"},
-    {"1D00278E7600"},
-    {"1D0027AA9B00"}};
+    {"09008FF3DD00"},
+    {"09008F3CCC00"},
+    {"09008F528000"},
+    {"09008EE32200"}};
 
 /**
  * LEDs.
  */
 
-const uint16_t LED_BOX_NUM = 100;
-const uint16_t LED_STRIPS_NUM = 100;
+const uint16_t LED_BOX_NUM = 90;
+const uint16_t LED_STRIPS_NUM = 90;
 
 const uint8_t LED_BOX_PIN = 10;
 const uint8_t LED_STRIPS_PIN = 11;
 
-WS2812FX ledBox = WS2812FX(LED_BOX_NUM, LED_BOX_PIN, NEO_GRB + NEO_KHZ800);
-WS2812FX ledStrips = WS2812FX(LED_STRIPS_NUM, LED_STRIPS_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledBox = Adafruit_NeoPixel(
+    LED_BOX_NUM, LED_BOX_PIN, NEO_RGB + NEO_KHZ800);
 
-const uint16_t STRIP_DEFAULT_SPEED = 300;
-const uint8_t STRIP_DEFAULT_BRIGHTNESS = 20;
-const uint8_t STRIP_BRIGHTNESS = 160;
-const uint16_t BOX_DEFAULT_SPEED = 2000;
-const uint8_t BOX_DEFAULT_BRIGHTNESS = 20;
-const uint16_t BOX_SPEED = 600;
-const uint8_t BOX_BRIGHTNESS = 160;
+Adafruit_NeoPixel ledStrips = Adafruit_NeoPixel(
+    LED_STRIPS_NUM, LED_STRIPS_PIN, NEO_RGB + NEO_KHZ800);
+
+const uint32_t COLOR_DEFAULT = Adafruit_NeoPixel::Color(180, 180, 220);
+
+const uint8_t STRIP_BRIGHTNESS_DEFAULT = 10;
+const uint8_t STRIP_BRIGHTNESS = 180;
+const uint8_t BOX_BRIGHTNESS_DEFAULT = 10;
+const uint8_t BOX_BRIGHTNESS = 180;
 
 /**
  * Control pins and relays.
@@ -163,7 +165,7 @@ void initControlPins()
   initRelay(PIN_OUTPUT_RELAY_SECONDARY);
   setOpenDrainOutput(PIN_OUTPUT_ACTIVATION_BATS, false);
 
-  const int minDurationMs = 500;
+  const int minDurationMs = 2000;
   const bool activeLow = false;
   const bool pullUp = true;
 
@@ -265,22 +267,18 @@ void printCurrentTags()
 
 void initLedBox()
 {
-  ledBox.init();
-  ledBox.setBrightness(BOX_DEFAULT_BRIGHTNESS);
-  ledBox.setSpeed(BOX_DEFAULT_SPEED);
-  ledBox.setMode(FX_MODE_FADE);
-  ledBox.setColor(WHITE);
-  ledBox.start();
+  ledBox.begin();
+  ledBox.setBrightness(BOX_BRIGHTNESS_DEFAULT);
+  ledBox.fill(COLOR_DEFAULT);
+  ledBox.show();
 }
 
 void initLedStrips()
 {
-  ledStrips.init();
-  ledStrips.setBrightness(STRIP_DEFAULT_BRIGHTNESS);
-  ledStrips.setSpeed(STRIP_DEFAULT_SPEED);
-  ledStrips.setMode(FX_MODE_STATIC);
-  ledStrips.setColor(WHITE);
-  ledStrips.start();
+  ledStrips.begin();
+  ledStrips.setBrightness(STRIP_BRIGHTNESS_DEFAULT);
+  ledStrips.fill(COLOR_DEFAULT);
+  ledStrips.show();
 }
 
 void onTimerState(int idx, int v, int up)
@@ -288,19 +286,23 @@ void onTimerState(int idx, int v, int up)
   bool rfidComplete = progState.isPrimaryComplete || progState.isSecondaryComplete;
 
   // If the RFID stage is complete, we need to activate the bats controller
+
   if (rfidComplete)
   {
     setOpenDrainOutput(PIN_OUTPUT_ACTIVATION_BATS, true);
 
     if (!progState.flagBatsActivation)
     {
-      ledStrips.setMode(FX_MODE_COLOR_WIPE);
+      Serial.println(F("Sent activation pulse to bats controller"));
       ledStrips.setBrightness(STRIP_BRIGHTNESS);
+      ledStrips.fill(COLOR_DEFAULT);
+      ledStrips.show();
       progState.flagBatsActivation = true;
     }
   }
 
   // If the RFID stage is still pending, we have to poll the RFID readers
+
   if (!rfidComplete)
   {
     pollRfidReaders();
@@ -314,6 +316,7 @@ void onTimerState(int idx, int v, int up)
   }
 
   // If both the RFID and bats stages are complete, we need to update the relays
+
   if (rfidComplete && progState.isBatsStageComplete)
   {
     if (progState.isSecondaryComplete)
@@ -329,8 +332,10 @@ void onTimerState(int idx, int v, int up)
 
     if (!progState.flagRelayUpdate)
     {
-      ledBox.setSpeed(BOX_SPEED);
+      Serial.println(F("Updated relay state"));
       ledBox.setBrightness(BOX_BRIGHTNESS);
+      ledBox.fill(COLOR_DEFAULT);
+      ledBox.show();
       progState.flagRelayUpdate = true;
     }
   }
@@ -358,12 +363,10 @@ void setup()
   initLedBox();
   initLedStrips();
   initTimerState();
-  Serial.println(F("Primary Skeleton program"));
+  Serial.println(F("Esqueleto Primario"));
 }
 
 void loop()
 {
   automaton.run();
-  ledBox.service();
-  ledStrips.service();
 }

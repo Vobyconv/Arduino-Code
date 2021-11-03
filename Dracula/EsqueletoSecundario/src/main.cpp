@@ -37,22 +37,24 @@ String validTags[NUM_READERS][NUM_OPTIONS] = {
  * LEDs.
  */
 
-const uint16_t LED_BOX_NUM = 100;
-const uint16_t LED_STRIPS_NUM = 100;
+const uint16_t LED_BOX_NUM = 90;
+const uint16_t LED_STRIPS_NUM = 90;
 
 const uint8_t LED_BOX_PIN = 10;
 const uint8_t LED_STRIPS_PIN = 11;
 
-WS2812FX ledBox = WS2812FX(LED_BOX_NUM, LED_BOX_PIN, NEO_GRB + NEO_KHZ800);
-WS2812FX ledStrips = WS2812FX(LED_STRIPS_NUM, LED_STRIPS_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledBox = Adafruit_NeoPixel(
+    LED_BOX_NUM, LED_BOX_PIN, NEO_RGB + NEO_KHZ800);
 
-const uint16_t STRIP_DEFAULT_SPEED = 300;
-const uint8_t STRIP_DEFAULT_BRIGHTNESS = 20;
-const uint8_t STRIP_BRIGHTNESS = 160;
-const uint16_t BOX_DEFAULT_SPEED = 2000;
-const uint8_t BOX_DEFAULT_BRIGHTNESS = 20;
-const uint16_t BOX_SPEED = 600;
-const uint8_t BOX_BRIGHTNESS = 160;
+Adafruit_NeoPixel ledStrips = Adafruit_NeoPixel(
+    LED_STRIPS_NUM, LED_STRIPS_PIN, NEO_RGB + NEO_KHZ800);
+
+const uint32_t COLOR_DEFAULT = Adafruit_NeoPixel::Color(200, 10, 10);
+
+const uint8_t STRIP_BRIGHTNESS_DEFAULT = 10;
+const uint8_t STRIP_BRIGHTNESS = 180;
+const uint8_t BOX_BRIGHTNESS_DEFAULT = 10;
+const uint8_t BOX_BRIGHTNESS = 180;
 
 /**
  * Control pins and relays.
@@ -243,46 +245,50 @@ void printCurrentTags()
 
 void initLedBox()
 {
-  ledBox.init();
-  ledBox.setBrightness(BOX_DEFAULT_BRIGHTNESS);
-  ledBox.setSpeed(BOX_DEFAULT_SPEED);
-  ledBox.setMode(FX_MODE_FADE);
-  ledBox.setColor(WHITE);
-  ledBox.start();
+  ledBox.begin();
+  ledBox.setBrightness(BOX_BRIGHTNESS_DEFAULT);
+  ledBox.fill(COLOR_DEFAULT);
+  ledBox.show();
 }
 
 void initLedStrips()
 {
-  ledStrips.init();
-  ledStrips.setBrightness(STRIP_DEFAULT_BRIGHTNESS);
-  ledStrips.setSpeed(STRIP_DEFAULT_SPEED);
-  ledStrips.setMode(FX_MODE_STATIC);
-  ledStrips.setColor(WHITE);
-  ledStrips.start();
+  ledStrips.begin();
+  ledStrips.setBrightness(STRIP_BRIGHTNESS_DEFAULT);
+  ledStrips.fill(COLOR_DEFAULT);
+  ledStrips.show();
 }
 
 void onTimerState(int idx, int v, int up)
 {
+  // Poll the RFID readers if they are still pending
+
   if (!progState.flagRfidCompletion)
   {
     pollRfidReaders();
     printCurrentTags();
-
-    if (isTagsStateValid())
-    {
-      Serial.println(F("Setting completion flag"));
-      setOpenDrainOutput(PIN_OUTPUT_COMPLETION, true);
-      ledStrips.setMode(FX_MODE_COLOR_WIPE);
-      ledStrips.setBrightness(STRIP_BRIGHTNESS);
-      progState.flagRfidCompletion = true;
-    }
   }
+
+  // Send completion pulse if the RFID readers are pending and the current tags are valid
+
+  if (!progState.flagRfidCompletion && isTagsStateValid())
+  {
+    Serial.println(F("Sending RFID completion pulse"));
+    setOpenDrainOutput(PIN_OUTPUT_COMPLETION, true);
+    ledStrips.setBrightness(STRIP_BRIGHTNESS);
+    ledStrips.fill(COLOR_DEFAULT);
+    ledStrips.show();
+    progState.flagRfidCompletion = true;
+  }
+
+  // Turn on the box when the RFID stage is OK and the completion pulse from the bats has been received
 
   if (progState.flagRfidCompletion && progState.isBatsStageComplete && !progState.flagLedBoxUpdate)
   {
     Serial.println(F("Updating box LED"));
-    ledBox.setSpeed(BOX_SPEED);
     ledBox.setBrightness(BOX_BRIGHTNESS);
+    ledBox.fill(COLOR_DEFAULT);
+    ledBox.show();
     progState.flagLedBoxUpdate = true;
   }
   else if (!progState.flagRfidCompletion && progState.isBatsStageComplete)
@@ -315,6 +321,4 @@ void setup()
 void loop()
 {
   automaton.run();
-  ledBox.service();
-  ledStrips.service();
 }
