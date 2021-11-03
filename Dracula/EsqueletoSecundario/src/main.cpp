@@ -147,7 +147,7 @@ void initControlPins()
 {
   setOpenDrainOutput(PIN_OUTPUT_COMPLETION, false);
 
-  const int minDurationMs = 500;
+  const int minDurationMs = 2000;
   const bool activeLow = false;
   const bool pullUp = true;
 
