@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <rdm630.h>
-#include <WS2812FX.h>
 #include <Automaton.h>
 
 /**
@@ -28,42 +27,16 @@ const unsigned int EMPTY_TOLERANCE = 1;
 const int NUM_OPTIONS = 1;
 
 String validTags[NUM_READERS][NUM_OPTIONS] = {
-    {"1D00278F8200"},
-    {"1D00277EC900"},
-    {"1D00278E7600"},
-    {"1D0027AA9B00"}};
+    {"09008FF3DD00"},
+    {"09008F3CCC00"},
+    {"09008F528000"},
+    {"09008EE32200"}};
 
 /**
- * LEDs.
- */
-
-const uint16_t LED_BOX_NUM = 90;
-const uint16_t LED_STRIPS_NUM = 90;
-
-const uint8_t LED_BOX_PIN = 10;
-const uint8_t LED_STRIPS_PIN = 11;
-
-Adafruit_NeoPixel ledBox = Adafruit_NeoPixel(
-    LED_BOX_NUM, LED_BOX_PIN, NEO_RGB + NEO_KHZ800);
-
-Adafruit_NeoPixel ledStrips = Adafruit_NeoPixel(
-    LED_STRIPS_NUM, LED_STRIPS_PIN, NEO_RGB + NEO_KHZ800);
-
-const uint32_t COLOR_DEFAULT = Adafruit_NeoPixel::Color(200, 10, 10);
-
-const uint8_t STRIP_BRIGHTNESS_DEFAULT = 10;
-const uint8_t STRIP_BRIGHTNESS = 180;
-const uint8_t BOX_BRIGHTNESS_DEFAULT = 10;
-const uint8_t BOX_BRIGHTNESS = 180;
-
-/**
- * Control pins and relays.
+ * Control pins.
  */
 
 const uint8_t PIN_OUTPUT_COMPLETION = 12;
-const uint8_t PIN_INPUT_COMPLETION_BATS = A0;
-
-Atm_digital digitalInputCompletionBats;
 
 /**
  * Program state.
@@ -78,16 +51,10 @@ String currentTags[NUM_READERS];
 typedef struct programState
 {
   unsigned int emptyReadCount[NUM_READERS];
-  bool isBatsStageComplete;
-  bool flagRfidCompletion;
-  bool flagLedBoxUpdate;
 } ProgramState;
 
 ProgramState progState = {
-    .emptyReadCount = {0, 0, 0, 0},
-    .isBatsStageComplete = false,
-    .flagRfidCompletion = false,
-    .flagLedBoxUpdate = false};
+    .emptyReadCount = {0, 0, 0, 0}};
 
 void initState()
 {
@@ -95,10 +62,6 @@ void initState()
   {
     progState.emptyReadCount[i] = 0;
   }
-
-  progState.isBatsStageComplete = false;
-  progState.flagRfidCompletion = false;
-  progState.flagLedBoxUpdate = false;
 }
 
 void lockRelay(uint8_t pin)
@@ -137,23 +100,9 @@ void setOpenDrainOutput(uint8_t pin, bool value)
   }
 }
 
-void onBatsCompletion(int idx, int v, int up)
-{
-  Serial.println(F("Pulse from bats"));
-  progState.isBatsStageComplete = true;
-}
-
 void initControlPins()
 {
   setOpenDrainOutput(PIN_OUTPUT_COMPLETION, false);
-
-  const int minDurationMs = 2000;
-  const bool activeLow = false;
-  const bool pullUp = true;
-
-  digitalInputCompletionBats
-      .begin(PIN_INPUT_COMPLETION_BATS, minDurationMs, activeLow, pullUp)
-      .onChange(HIGH, onBatsCompletion);
 }
 
 void initRfidReaders()
@@ -243,57 +192,20 @@ void printCurrentTags()
   }
 }
 
-void initLedBox()
-{
-  ledBox.begin();
-  ledBox.setBrightness(BOX_BRIGHTNESS_DEFAULT);
-  ledBox.fill(COLOR_DEFAULT);
-  ledBox.show();
-}
-
-void initLedStrips()
-{
-  ledStrips.begin();
-  ledStrips.setBrightness(STRIP_BRIGHTNESS_DEFAULT);
-  ledStrips.fill(COLOR_DEFAULT);
-  ledStrips.show();
-}
-
 void onTimerState(int idx, int v, int up)
 {
-  // Poll the RFID readers if they are still pending
+  pollRfidReaders();
+  printCurrentTags();
 
-  if (!progState.flagRfidCompletion)
+  if (isTagsStateValid())
   {
-    pollRfidReaders();
-    printCurrentTags();
-  }
-
-  // Send completion pulse if the RFID readers are pending and the current tags are valid
-
-  if (!progState.flagRfidCompletion && isTagsStateValid())
-  {
-    Serial.println(F("Sending RFID completion pulse"));
+    Serial.println(F("Output pin: ON"));
     setOpenDrainOutput(PIN_OUTPUT_COMPLETION, true);
-    ledStrips.setBrightness(STRIP_BRIGHTNESS);
-    ledStrips.fill(COLOR_DEFAULT);
-    ledStrips.show();
-    progState.flagRfidCompletion = true;
   }
-
-  // Turn on the box when the RFID stage is OK and the completion pulse from the bats has been received
-
-  if (progState.flagRfidCompletion && progState.isBatsStageComplete && !progState.flagLedBoxUpdate)
+  else
   {
-    Serial.println(F("Updating box LED"));
-    ledBox.setBrightness(BOX_BRIGHTNESS);
-    ledBox.fill(COLOR_DEFAULT);
-    ledBox.show();
-    progState.flagLedBoxUpdate = true;
-  }
-  else if (!progState.flagRfidCompletion && progState.isBatsStageComplete)
-  {
-    Serial.println(F("Warn: Bats HIGH but RFID pending"));
+    Serial.println(F("Output pin: OFF"));
+    setOpenDrainOutput(PIN_OUTPUT_COMPLETION, false);
   }
 }
 
@@ -312,10 +224,8 @@ void setup()
   initState();
   initControlPins();
   initRfidReaders();
-  initLedBox();
-  initLedStrips();
   initTimerState();
-  Serial.println(F("Primary Skeleton program"));
+  Serial.println(F("Esqueleto Secundario"));
 }
 
 void loop()

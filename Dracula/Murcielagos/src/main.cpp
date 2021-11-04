@@ -1,11 +1,12 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+#include <Automaton.h>
 
-// Control pins
-const int PIN_INPUT_ACTIVATION = 11;
-const int PIN_OUTPUT_RELAY = 12;
+const int PIN_INPUT_RELAY_ACTIVATION = 11;
+const int PIN_OUTPUT_RELAY_COMPLETION = 12;
 
-// Program state
+Atm_button buttonActivation;
+
 bool isActive = false;
 bool isRelayOpen = false;
 
@@ -20,50 +21,63 @@ int limiteChillido = 48;
 int agudo = 1100;
 int tiempoChillido = 4;
 
-Adafruit_NeoPixel stripBat = Adafruit_NeoPixel(puntosEyes, tiraEyes, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel stripBat = Adafruit_NeoPixel(
+    puntosEyes,
+    tiraEyes,
+    NEO_GRB + NEO_KHZ800);
 
 // Pines de murcielagos
-int batSensores[NUM_MURCIELAGOS] = {A0, A1, A2, A3, A4, A5, A6};
+int batSensores[NUM_MURCIELAGOS] = {
+    A0, A1, A2, A3, A4, A5, A6};
 
 // Chillidos
-int batSound[NUM_MURCIELAGOS] = {2, 3, 4, 5, 6, 7, 8};
+int batSound[NUM_MURCIELAGOS] = {
+    2, 3, 4, 5, 6, 7, 8};
 
 // Puntitos de Ojos murcielago
-int batLeds[NUM_MURCIELAGOS][NUM_LEDS] = {{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}, {12, 13}};
+int batLeds[NUM_MURCIELAGOS][NUM_LEDS] = {
+    {0, 1},
+    {2, 3},
+    {4, 5},
+    {6, 7},
+    {8, 9},
+    {10, 11},
+    {12, 13}};
 
 // Contadores de luz
-int batLights[NUM_MURCIELAGOS] = {0, 0, 0, 0, 0, 0, 0};
+int batLights[NUM_MURCIELAGOS] = {
+    0, 0, 0, 0, 0, 0, 0};
 
 // Contadores de victoria
-bool solucionNum[NUM_MURCIELAGOS] = {false, false, false, false, false, false, false};
+bool solucionNum[NUM_MURCIELAGOS] = {
+    false, false, false, false, false, false, false};
 
 // Para omitir comprobaciones
-bool batCheck[NUM_MURCIELAGOS] = {false, false, false, false, false, false, false};
+bool batCheck[NUM_MURCIELAGOS] = {
+    false, false, false, false, false, false, false};
 
-/**
- * https://www.avdweb.nl/arduino/misc/handy-functions
- * When the output is high, the impedance must be high; this is done by making the pinmode INPUT. 
- * When the output is low, it must be 0V; this is done by making the pinmode OUTPUT and the output level LOW.
- * The receiver must use INPUT_PULLUP. 
- * The signal will be LOW if the transmitter is powered down.
- */
-void setOpenDrainOutput(uint8_t pin, bool value)
+void lockRelay(uint8_t pin)
 {
-  if (value)
-  {
-    pinMode(pin, INPUT);
-  }
-  else
-  {
-    pinMode(pin, OUTPUT);
-    digitalWrite(pin, LOW);
-  }
+  digitalWrite(pin, LOW);
+}
+
+void openRelay(uint8_t pin)
+{
+  digitalWrite(pin, HIGH);
+}
+
+void initRelay(uint8_t pin)
+{
+  pinMode(pin, OUTPUT);
+  lockRelay(pin);
 }
 
 void initLeds()
 {
+  const int brightness = 10;
+
   stripBat.begin();
-  stripBat.setBrightness(10);
+  stripBat.setBrightness(brightness);
   stripBat.show();
   stripBat.clear();
 }
@@ -209,21 +223,28 @@ void ojitos()
   }
 }
 
-void updateActivationState()
+void blinkBats()
 {
-  const int readDelayMs = 200;
-  const int numReads = 15;
+  const int delayMs = 100;
+  const int numLoops = 2;
+  const uint32_t color = Adafruit_NeoPixel::Color(250, 250, 250);
 
-  for (int i = 0; i < numReads; i++)
+  for (int i = 0; i < numLoops; i++)
   {
-    if (digitalRead(PIN_INPUT_ACTIVATION) != HIGH)
-    {
-      return;
-    }
-
-    delay(readDelayMs);
+    stripBat.clear();
+    stripBat.show();
+    delay(delayMs);
+    stripBat.fill(color);
+    stripBat.show();
+    delay(delayMs);
   }
 
+  stripBat.clear();
+  stripBat.show();
+}
+
+void onActivation(int idx, int v, int up)
+{
   Serial.println(F("Detected activation pulse"));
   isActive = true;
 }
@@ -231,34 +252,42 @@ void updateActivationState()
 void setup()
 {
   Serial.begin(9600);
-  setOpenDrainOutput(PIN_OUTPUT_RELAY, false);
-  pinMode(PIN_INPUT_ACTIVATION, INPUT_PULLUP);
+
+  initRelay(PIN_OUTPUT_RELAY_COMPLETION);
+
+  const int debounceDelayMs = 2000;
+
+  buttonActivation
+      .begin(PIN_INPUT_RELAY_ACTIVATION)
+      .debounce(debounceDelayMs)
+      .onPress(onActivation);
+
   initLeds();
-  Serial.println(F("Starting Murcielagos"));
+
+  Serial.println(F("Murcielagos"));
 }
 
 void loop()
 {
-  const int delayLoopMs = 80;
+  automaton.run();
 
   if (isActive)
   {
+    const int delayLoopMs = 50;
+
     if (isRelayOpen)
     {
-      setOpenDrainOutput(PIN_OUTPUT_RELAY, true);
+      blinkBats();
+      openRelay(PIN_OUTPUT_RELAY_COMPLETION);
     }
     else
     {
       ojitos();
       murcielagos();
       releOpen();
-      setOpenDrainOutput(PIN_OUTPUT_RELAY, false);
+      lockRelay(PIN_OUTPUT_RELAY_COMPLETION);
     }
 
     delay(delayLoopMs);
-  }
-  else
-  {
-    updateActivationState();
   }
 }

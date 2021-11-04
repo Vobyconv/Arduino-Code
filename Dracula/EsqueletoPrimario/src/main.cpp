@@ -8,7 +8,7 @@
  */
 
 const uint8_t NUM_READERS = 4;
-const unsigned long RFID_READ_WAIT_MS = 500;
+const unsigned long RFID_READ_WAIT_MS = 250;
 
 // RX, TX
 
@@ -37,24 +37,41 @@ String validTags[NUM_READERS][NUM_OPTIONS] = {
  * LEDs.
  */
 
-const uint16_t LED_BOX_NUM = 90;
-const uint16_t LED_STRIPS_NUM = 90;
+const uint16_t LED_BOX_NUM = 35;
+const uint16_t LED_STRIPS_NUM = 60;
 
-const uint8_t LED_BOX_PIN = 10;
-const uint8_t LED_STRIPS_PIN = 11;
+const uint8_t LED_BOX_PRI_PIN = 11;
+const uint8_t LED_BOX_SEC_PIN = A4;
+const uint8_t LED_STRIPS_PRI_PIN = 10;
+const uint8_t LED_STRIPS_SEC_PIN = A5;
 
-Adafruit_NeoPixel ledBox = Adafruit_NeoPixel(
-    LED_BOX_NUM, LED_BOX_PIN, NEO_RGB + NEO_KHZ800);
+Adafruit_NeoPixel ledBoxPri = Adafruit_NeoPixel(
+    LED_BOX_NUM,
+    LED_BOX_PRI_PIN,
+    NEO_GRB + NEO_KHZ800);
 
-Adafruit_NeoPixel ledStrips = Adafruit_NeoPixel(
-    LED_STRIPS_NUM, LED_STRIPS_PIN, NEO_RGB + NEO_KHZ800);
+Adafruit_NeoPixel ledBoxSec = Adafruit_NeoPixel(
+    LED_BOX_NUM,
+    LED_BOX_SEC_PIN,
+    NEO_GRB + NEO_KHZ800);
 
-const uint32_t COLOR_DEFAULT = Adafruit_NeoPixel::Color(180, 180, 220);
+Adafruit_NeoPixel ledStripsPri = Adafruit_NeoPixel(
+    LED_STRIPS_NUM,
+    LED_STRIPS_PRI_PIN,
+    NEO_GRB + NEO_KHZ800);
 
-const uint8_t STRIP_BRIGHTNESS_DEFAULT = 10;
-const uint8_t STRIP_BRIGHTNESS = 180;
-const uint8_t BOX_BRIGHTNESS_DEFAULT = 10;
-const uint8_t BOX_BRIGHTNESS = 180;
+Adafruit_NeoPixel ledStripsSec = Adafruit_NeoPixel(
+    LED_STRIPS_NUM,
+    LED_STRIPS_SEC_PIN,
+    NEO_GRB + NEO_KHZ800);
+
+const uint32_t COLOR_PRI = Adafruit_NeoPixel::Color(100, 100, 240);
+const uint32_t COLOR_SEC = Adafruit_NeoPixel::Color(240, 0, 0);
+
+const uint8_t STRIP_BRIGHTNESS_DEFAULT = 1;
+const uint8_t STRIP_BRIGHTNESS = 200;
+const uint8_t BOX_BRIGHTNESS_DEFAULT = 1;
+const uint8_t BOX_BRIGHTNESS = 200;
 
 /**
  * Control pins and relays.
@@ -63,11 +80,11 @@ const uint8_t BOX_BRIGHTNESS = 180;
 const uint8_t PIN_OUTPUT_RELAY_PRIMARY = 12;
 const uint8_t PIN_OUTPUT_RELAY_SECONDARY = A0;
 const uint8_t PIN_INPUT_COMPLETION_SECONDARY = A1;
-const uint8_t PIN_OUTPUT_ACTIVATION_BATS = A2;
-const uint8_t PIN_INPUT_COMPLETION_BATS = A3;
+const uint8_t PIN_OUTPUT_RELAY_ACTIVATION_BATS = A2;
+const uint8_t PIN_INPUT_RELAY_COMPLETION_BATS = A3;
 
 Atm_digital digitalInputCompletionSecondary;
-Atm_digital digitalInputCompletionBats;
+Atm_button buttonCompletionBats;
 
 /**
  * Program state.
@@ -127,55 +144,52 @@ void initRelay(uint8_t pin)
   lockRelay(pin);
 }
 
-/**
- * https://www.avdweb.nl/arduino/misc/handy-functions
- * When the output is high, the impedance must be high; this is done by making the pinmode INPUT. 
- * When the output is low, it must be 0V; this is done by making the pinmode OUTPUT and the output level LOW.
- * The receiver must use INPUT_PULLUP. 
- * The signal will be LOW if the transmitter is powered down.
- */
-void setOpenDrainOutput(uint8_t pin, bool value)
+void onSecondaryHigh(int idx, int v, int up)
 {
-  if (value)
-  {
-    pinMode(pin, INPUT);
-  }
-  else
-  {
-    pinMode(pin, OUTPUT);
-    digitalWrite(pin, LOW);
-  }
-}
-
-void onSecondaryCompletion(int idx, int v, int up)
-{
-  Serial.println(F("Pulse from secondary RFID"));
+  Serial.println(F("isSecondaryComplete = true"));
   progState.isSecondaryComplete = true;
 }
 
-void onBatsCompletion(int idx, int v, int up)
+void onSecondaryLow(int idx, int v, int up)
 {
-  Serial.println(F("Pulse from bats"));
+  Serial.println(F("isSecondaryComplete = false"));
+  progState.isSecondaryComplete = false;
+}
+
+void onBatsPress(int idx, int v, int up)
+{
+  Serial.println(F("isBatsStageComplete = true"));
   progState.isBatsStageComplete = true;
+}
+
+void onBatsRelease(int idx, int v, int up)
+{
+  Serial.println(F("isBatsStageComplete = false"));
+  progState.isBatsStageComplete = false;
 }
 
 void initControlPins()
 {
   initRelay(PIN_OUTPUT_RELAY_PRIMARY);
   initRelay(PIN_OUTPUT_RELAY_SECONDARY);
-  setOpenDrainOutput(PIN_OUTPUT_ACTIVATION_BATS, false);
+  initRelay(PIN_OUTPUT_RELAY_ACTIVATION_BATS);
 
-  const int minDurationMs = 2000;
+  const int minDurationMs = 1000;
   const bool activeLow = false;
   const bool pullUp = true;
 
   digitalInputCompletionSecondary
       .begin(PIN_INPUT_COMPLETION_SECONDARY, minDurationMs, activeLow, pullUp)
-      .onChange(HIGH, onSecondaryCompletion);
+      .onChange(HIGH, onSecondaryHigh)
+      .onChange(LOW, onSecondaryLow);
 
-  digitalInputCompletionBats
-      .begin(PIN_INPUT_COMPLETION_BATS, minDurationMs, activeLow, pullUp)
-      .onChange(HIGH, onBatsCompletion);
+  const int debounceDelayMs = 500;
+
+  buttonCompletionBats
+      .begin(PIN_INPUT_RELAY_COMPLETION_BATS)
+      .debounce(debounceDelayMs)
+      .onPress(onBatsPress)
+      .onRelease(onBatsRelease);
 }
 
 void initRfidReaders()
@@ -267,38 +281,68 @@ void printCurrentTags()
 
 void initLedBox()
 {
-  ledBox.begin();
-  ledBox.setBrightness(BOX_BRIGHTNESS_DEFAULT);
-  ledBox.fill(COLOR_DEFAULT);
-  ledBox.show();
+  ledBoxPri.begin();
+  ledBoxPri.setBrightness(BOX_BRIGHTNESS_DEFAULT);
+  ledBoxPri.fill(COLOR_PRI);
+  ledBoxPri.show();
+
+  ledBoxSec.begin();
+  ledBoxSec.setBrightness(BOX_BRIGHTNESS_DEFAULT);
+  ledBoxSec.fill(COLOR_SEC);
+  ledBoxSec.show();
 }
 
 void initLedStrips()
 {
-  ledStrips.begin();
-  ledStrips.setBrightness(STRIP_BRIGHTNESS_DEFAULT);
-  ledStrips.fill(COLOR_DEFAULT);
-  ledStrips.show();
+  ledStripsPri.begin();
+  ledStripsPri.setBrightness(STRIP_BRIGHTNESS_DEFAULT);
+  ledStripsPri.fill(COLOR_PRI);
+  ledStripsPri.show();
+
+  ledStripsSec.begin();
+  ledStripsSec.setBrightness(STRIP_BRIGHTNESS_DEFAULT);
+  ledStripsSec.fill(COLOR_SEC);
+  ledStripsSec.show();
 }
 
 void onTimerState(int idx, int v, int up)
 {
   bool rfidComplete = progState.isPrimaryComplete || progState.isSecondaryComplete;
 
+  // If the RFID stage is complete and we haven't activated the bats yet, we need to update the LED
+
+  if (progState.isPrimaryComplete && !progState.flagBatsActivation)
+  {
+    ledStripsPri.setBrightness(STRIP_BRIGHTNESS);
+    ledStripsPri.fill(COLOR_PRI);
+    ledStripsPri.show();
+
+    ledStripsSec.clear();
+    ledStripsSec.show();
+
+    ledBoxSec.clear();
+    ledBoxSec.show();
+  }
+  else if (progState.isSecondaryComplete && !progState.flagBatsActivation)
+  {
+    ledStripsSec.setBrightness(STRIP_BRIGHTNESS);
+    ledStripsSec.fill(COLOR_SEC);
+    ledStripsSec.show();
+
+    ledStripsPri.clear();
+    ledStripsPri.show();
+
+    ledBoxPri.clear();
+    ledBoxPri.show();
+  }
+
   // If the RFID stage is complete, we need to activate the bats controller
 
-  if (rfidComplete)
+  if (rfidComplete && !progState.flagBatsActivation)
   {
-    setOpenDrainOutput(PIN_OUTPUT_ACTIVATION_BATS, true);
-
-    if (!progState.flagBatsActivation)
-    {
-      Serial.println(F("Sent activation pulse to bats controller"));
-      ledStrips.setBrightness(STRIP_BRIGHTNESS);
-      ledStrips.fill(COLOR_DEFAULT);
-      ledStrips.show();
-      progState.flagBatsActivation = true;
-    }
+    Serial.println(F("Opening bats activation relay"));
+    openRelay(PIN_OUTPUT_RELAY_ACTIVATION_BATS);
+    progState.flagBatsActivation = true;
   }
 
   // If the RFID stage is still pending, we have to poll the RFID readers
@@ -319,23 +363,28 @@ void onTimerState(int idx, int v, int up)
 
   if (rfidComplete && progState.isBatsStageComplete)
   {
-    if (progState.isSecondaryComplete)
-    {
-      lockRelay(PIN_OUTPUT_RELAY_PRIMARY);
-      openRelay(PIN_OUTPUT_RELAY_SECONDARY);
-    }
-    else
+    if (progState.isPrimaryComplete)
     {
       openRelay(PIN_OUTPUT_RELAY_PRIMARY);
       lockRelay(PIN_OUTPUT_RELAY_SECONDARY);
+
+      ledBoxPri.setBrightness(BOX_BRIGHTNESS);
+      ledBoxPri.fill(COLOR_PRI);
+      ledBoxPri.show();
+    }
+    else
+    {
+      lockRelay(PIN_OUTPUT_RELAY_PRIMARY);
+      openRelay(PIN_OUTPUT_RELAY_SECONDARY);
+
+      ledBoxSec.setBrightness(BOX_BRIGHTNESS);
+      ledBoxSec.fill(COLOR_SEC);
+      ledBoxSec.show();
     }
 
     if (!progState.flagRelayUpdate)
     {
       Serial.println(F("Updated relay state"));
-      ledBox.setBrightness(BOX_BRIGHTNESS);
-      ledBox.fill(COLOR_DEFAULT);
-      ledBox.show();
       progState.flagRelayUpdate = true;
     }
   }
