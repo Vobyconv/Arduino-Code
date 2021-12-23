@@ -3,7 +3,6 @@
 #include "Adafruit_TCS34725.h"
 #include <Automaton.h>
 #include <Adafruit_NeoPixel.h>
-#include <WS2812FX.h>
 #include <SoftwareSerial.h>
 #include <SerialRFID.h>
 #include <KickSort.h>
@@ -37,16 +36,16 @@ const uint16_t LED_RGB_SENSOR_NUMS[NUM_RGB_SENSORS] = {
 const uint8_t LED_RGB_SENSOR_PINS[NUM_RGB_SENSORS] = {
     30, 31, 32, 33};
 
-WS2812FX ledRgbSensors[NUM_RGB_SENSORS] = {
-    WS2812FX(LED_RGB_SENSOR_NUMS[0], LED_RGB_SENSOR_PINS[0], NEO_GRB + NEO_KHZ800),
-    WS2812FX(LED_RGB_SENSOR_NUMS[1], LED_RGB_SENSOR_PINS[1], NEO_GRB + NEO_KHZ800),
-    WS2812FX(LED_RGB_SENSOR_NUMS[2], LED_RGB_SENSOR_PINS[2], NEO_GRB + NEO_KHZ800),
-    WS2812FX(LED_RGB_SENSOR_NUMS[3], LED_RGB_SENSOR_PINS[3], NEO_GRB + NEO_KHZ800)};
+Adafruit_NeoPixel ledRgbSensors[NUM_RGB_SENSORS] = {
+    Adafruit_NeoPixel(LED_RGB_SENSOR_NUMS[0], LED_RGB_SENSOR_PINS[0], NEO_GRB + NEO_KHZ800),
+    Adafruit_NeoPixel(LED_RGB_SENSOR_NUMS[1], LED_RGB_SENSOR_PINS[1], NEO_GRB + NEO_KHZ800),
+    Adafruit_NeoPixel(LED_RGB_SENSOR_NUMS[2], LED_RGB_SENSOR_PINS[2], NEO_GRB + NEO_KHZ800),
+    Adafruit_NeoPixel(LED_RGB_SENSOR_NUMS[3], LED_RGB_SENSOR_PINS[3], NEO_GRB + NEO_KHZ800)};
 
 const uint16_t LED_COALS_NUM = 150;
 const uint8_t LED_COALS_PIN = 34;
 
-WS2812FX ledCoals = WS2812FX(LED_COALS_NUM, LED_COALS_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledCoals = Adafruit_NeoPixel(LED_COALS_NUM, LED_COALS_PIN, NEO_GRB + NEO_KHZ800);
 
 /**
  * Colors recognized by the RGB sensor.
@@ -82,7 +81,7 @@ const ColorDef RECOGNIZED_COLORS[NUM_RECOGNIZED_COLORS] = {
      .blueRatio = 0,
      .ledColor = Adafruit_NeoPixel::Color(255, 255, 0)}};
 
-const uint8_t RGB_SENSORS_COLOR_KEY[NUM_RGB_SENSORS] = {0, 1, 2, 3};
+const uint8_t RGB_SENSORS_COLOR_KEY[NUM_RGB_SENSORS] = {1, 1, 1, 1};
 
 /**
  * RGB sensor timer.
@@ -97,20 +96,9 @@ Atm_timer timerRgbSensor;
  */
 
 const uint8_t NUM_RFID = 5;
-const uint8_t NUM_RFID_SOFT_SERIALS = 2;
 
-SoftwareSerial sSerial4 = SoftwareSerial(3, 2);
-SoftwareSerial sSerial5 = SoftwareSerial(4, 5);
-
-typedef struct softSerialDef
-{
-  uint8_t rfidIdx;
-  SoftwareSerial sSerial;
-} SoftSerialDef;
-
-SoftSerialDef softSerials[NUM_RFID_SOFT_SERIALS] = {
-    {.rfidIdx = 3, .sSerial = sSerial4},
-    {.rfidIdx = 4, .sSerial = sSerial5}};
+SoftwareSerial sSerial4 = SoftwareSerial(52, 53);
+SoftwareSerial sSerial5 = SoftwareSerial(50, 51);
 
 SerialRFID rfids[NUM_RFID] = {
     SerialRFID(Serial1),
@@ -226,7 +214,7 @@ const unsigned long LED_KNOCK_DELAY_MS = 50;
 const uint16_t LED_PROGRESS_NUM = 60;
 const uint8_t LED_PROGRESS_PIN = 6;
 
-WS2812FX ledProgress = WS2812FX(LED_PROGRESS_NUM, LED_PROGRESS_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel ledProgress = Adafruit_NeoPixel(LED_PROGRESS_NUM, LED_PROGRESS_PIN, NEO_GRB + NEO_KHZ800);
 
 const uint32_t LED_PROGRESS_COLOR = Adafruit_NeoPixel::Color(255, 255, 0);
 
@@ -277,6 +265,8 @@ Atm_timer timerGeneral;
  * Program state.
  */
 
+char tagBuf[SIZE_TAG_ID];
+
 int16_t rgbSensorsColorIndex[NUM_RGB_SENSORS];
 
 char stateTags[NUM_RFID][SIZE_TAG_ID];
@@ -303,22 +293,6 @@ typedef struct programState
 
 ProgramState progState;
 
-void validateSoftSerialDefs()
-{
-  for (uint8_t i = 0; i < NUM_RFID_SOFT_SERIALS; i++)
-  {
-    if (softSerials[i].rfidIdx >= NUM_RFID)
-    {
-      Serial.println(F("Invalid RFID reader index"));
-
-      while (true)
-      {
-        delay(1000);
-      }
-    }
-  }
-}
-
 void validateKnockPatterns()
 {
   for (uint8_t idxRecipe = 0; idxRecipe < NUM_RECIPES; idxRecipe++)
@@ -340,7 +314,6 @@ void validateKnockPatterns()
 
 void initState()
 {
-  validateSoftSerialDefs();
   validateKnockPatterns();
 
   progState.rgbSensorsColorIndex = rgbSensorsColorIndex;
@@ -426,46 +399,22 @@ void initAudio()
 
 void updateLedProgress()
 {
-  if (ledProgress.isRunning())
-  {
-    ledProgress.stop();
-  }
-
   uint16_t numPerPhase = floor((float)LED_PROGRESS_NUM / NUM_RECIPES);
   uint16_t count = min(numPerPhase * progState.currentRecipe, ledProgress.numPixels());
 
-  const uint8_t idxSegment = 0;
-  const uint16_t start = 0;
-  const uint16_t speed = 1500;
-  const bool reverse = false;
-
   ledProgress.clear();
-  ledProgress.resetSegments();
-
-  ledProgress.setSegment(
-      idxSegment,
-      start,
-      count,
-      FX_MODE_COLOR_WIPE_REV,
-      LED_PROGRESS_COLOR,
-      speed,
-      reverse);
-
-  if (!ledProgress.isRunning())
-  {
-    ledProgress.start();
-  }
+  ledProgress.fill(LED_PROGRESS_COLOR, 0, count);
+  ledProgress.show();
 }
 
 void initLedProgress()
 {
   const uint8_t defaultBrightness = 150;
 
-  ledProgress.init();
+  ledProgress.begin();
   ledProgress.setBrightness(defaultBrightness);
-  ledProgress.setMode(FX_MODE_COLOR_WIPE_REV);
-  ledProgress.setColor(LED_PROGRESS_COLOR);
-  ledProgress.stop();
+  ledProgress.clear();
+  ledProgress.show();
 }
 
 void initLedEye()
@@ -681,15 +630,17 @@ void onTagInRangeChange(int idx, int v, int up)
 
   memset(stateTags[idx], 0, sizeof(stateTags[idx]));
 
-  for (uint8_t i = 0; i < NUM_RFID_SOFT_SERIALS; i++)
-  {
-    if (softSerials[i].rfidIdx == idx)
-    {
-      Serial.print(F("Listening on SoftSerial #"));
-      Serial.println(idx);
+  // ToDo: We should use Serial instead of sSerial5 in production
 
-      softSerials[i].sSerial.listen();
-    }
+  if (idx == 3)
+  {
+    sSerial4.listen();
+    Serial.println(F("Listening on sSerial4"));
+  }
+  else if (idx == 4)
+  {
+    sSerial5.listen();
+    Serial.println(F("Listening on sSerial5"));
   }
 }
 
@@ -714,24 +665,26 @@ void readRfid(uint8_t readerIdx)
     return;
   }
 
-  char newTag[SIZE_TAG_ID];
+  bool tagFound = rfids[readerIdx].readTag(tagBuf, sizeof(tagBuf));
 
-  if (rfids[readerIdx].readTag(newTag, sizeof(newTag)))
+  if (!tagFound)
   {
-    Serial.print(F("RFID #"));
-    Serial.print(readerIdx);
-    Serial.print(F(":"));
-    Serial.print(newTag);
-    Serial.println();
-    Serial.flush();
-
-    for (int k = 0; k < LEN_TAG_ID; k++)
-    {
-      stateTags[readerIdx][k] = newTag[k];
-    }
-
-    stateTagsMillis[readerIdx] = millis();
+    return;
   }
+
+  Serial.print(F("RFID #"));
+  Serial.print(readerIdx);
+  Serial.print(F(":"));
+  Serial.print(tagBuf);
+  Serial.println();
+  Serial.flush();
+
+  for (int k = 0; k < LEN_TAG_ID; k++)
+  {
+    stateTags[readerIdx][k] = tagBuf[k];
+  }
+
+  stateTagsMillis[readerIdx] = millis();
 }
 
 void onTimerRfid(int idx, int v, int up)
@@ -839,18 +792,22 @@ void updateLedRgbSensors()
 
     if (colorIdx >= 0 && colorIdx < NUM_RECOGNIZED_COLORS)
     {
-      ledRgbSensors[i].setColor(RECOGNIZED_COLORS[colorIdx].ledColor);
-
-      if (!ledRgbSensors[i].isRunning())
-      {
-        ledRgbSensors[i].start();
-      }
+      uint32_t theColor = RECOGNIZED_COLORS[colorIdx].ledColor;
+      ledRgbSensors[i].fill(theColor);
     }
-    else if (ledRgbSensors[i].isRunning())
+    else
     {
-      ledRgbSensors[i].stop();
+      ledRgbSensors[i].clear();
     }
+
+    ledRgbSensors[i].show();
   }
+}
+
+void startLedCoals()
+{
+  ledCoals.fill(Adafruit_NeoPixel::Color(255, 0, 0));
+  ledCoals.show();
 }
 
 void onTimerRgbSensor(int idx, int v, int up)
@@ -870,7 +827,7 @@ void onTimerRgbSensor(int idx, int v, int up)
   if (isRgbSensorsStateValid())
   {
     progState.isRgbSensorsPhaseCompleted = true;
-    ledCoals.start();
+    startLedCoals();
   }
 }
 
@@ -885,30 +842,25 @@ void initTimerRgbSensor()
 
 void initLedRgbSensors()
 {
-  const uint16_t defaultSpeed = 600;
   const uint8_t defaultBrightness = 160;
 
   for (int i = 0; i < NUM_RGB_SENSORS; i++)
   {
-    ledRgbSensors[i].init();
+    ledRgbSensors[i].begin();
     ledRgbSensors[i].setBrightness(defaultBrightness);
-    ledRgbSensors[i].setSpeed(defaultSpeed);
-    ledRgbSensors[i].setMode(FX_MODE_COLOR_WIPE_INV);
-    ledRgbSensors[i].stop();
+    ledRgbSensors[i].clear();
+    ledRgbSensors[i].show();
   }
 }
 
 void initLedCoals()
 {
-  const uint16_t defaultSpeed = 300;
   const uint8_t defaultBrightness = 150;
 
-  ledCoals.init();
+  ledCoals.begin();
   ledCoals.setBrightness(defaultBrightness);
-  ledCoals.setSpeed(defaultSpeed);
-  ledCoals.setMode(FX_MODE_FIRE_FLICKER);
-  ledCoals.setColor(ORANGE);
-  ledCoals.stop();
+  ledCoals.clear();
+  ledCoals.show();
 }
 
 void initRgbSensors()
@@ -1073,28 +1025,13 @@ void initTimerGeneral()
 
 void initSerials()
 {
-  const int bauds = 9600;
-
-  Serial.begin(bauds);
-  Serial1.begin(bauds);
-  Serial2.begin(bauds);
-  Serial3.begin(bauds);
-
-  for (uint8_t i = 0; i < NUM_RFID_SOFT_SERIALS; i++)
-  {
-    softSerials[i].sSerial.begin(bauds);
-  }
-}
-
-void serviceWS2812FX()
-{
-  ledCoals.service();
-  ledProgress.service();
-
-  for (uint8_t i = 0; i < NUM_RGB_SENSORS; i++)
-  {
-    ledRgbSensors[i].service();
-  }
+  Serial.begin(9600);
+  Serial1.begin(9600);
+  Serial2.begin(9600);
+  Serial3.begin(9600);
+  sSerial4.begin(9600);
+  sSerial5.begin(9600);
+  sSerial4.listen();
 }
 
 void setup(void)
@@ -1105,20 +1042,19 @@ void setup(void)
   initTimerRgbSensor();
   initLedRgbSensors();
   initLedCoals();
-  // initRfidsTagInRange();
-  // initTimerRfid();
+  initRfidsTagInRange();
+  initTimerRfid();
   // initKnockSensors();
   // initLedKnockSensors();
-  // initTimerGeneral();
+  initTimerGeneral();
   // initLedProgress();
   // initAudio();
   // initLedEye();
 
-  Serial.println(F("Starting Dracula Forge program"));
+  Serial.println(F("Forja Dracula"));
 }
 
 void loop(void)
 {
   automaton.run();
-  serviceWS2812FX();
 }
