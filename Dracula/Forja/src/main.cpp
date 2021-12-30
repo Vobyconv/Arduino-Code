@@ -133,41 +133,41 @@ enum Materials
 const uint8_t NUM_RECIPES = 3;
 
 Materials recipes[NUM_RECIPES][NUM_RFID] = {
-    {gold, gold, gold, silver, silver},
-    {gold, gold, gold, bronze, silver},
-    {gold, gold, gold, bronze, bronze}};
+    {bronze, bronze, bronze, silver, gold},
+    {orichalcum, orichalcum, mithril, mithril, silver},
+    {bronze, bronze, silver, silver, silver}};
 
 const uint8_t NUM_TAGS_MATERIAL = 4;
 
 char tagsGold[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
-    "1D00277FBDF8",
-    "1D00277FBDF8",
-    "1D00277FBDF8",
-    "1D00277FBDF8"};
+    "09008EAA163B",
+    "0700110E1F07",
+    "0700115DB0FB",
+    "0700118D47DC"};
 
 char tagsSilver[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
-    "1D00277FBDF9",
-    "1D00277FBDF9",
-    "1D00277FBDF9",
-    "1D00277FBDF9"};
+    "070010B159FF",
+    "0700109D0882",
+    "09008F834441",
+    "09008F9D7269"};
 
 char tagsBronze[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
-    "1D00277FBDF0",
-    "1D00277FBDF0",
-    "1D00277FBDF0",
-    "1D00277FBDF0"};
+    "0700118AE77B",
+    "09008F3A40FC",
+    "0700113B270A",
+    "07001093CE4A"};
 
 char tagsMithril[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
-    "1D00277FBDF1",
-    "1D00277FBDF1",
-    "1D00277FBDF1",
-    "1D00277FBDF1"};
+    "09008EFCC7BC",
+    "09008F67B554",
+    "070010A0CB7C",
+    "070010A80BB4"};
 
 char tagsOrichalcum[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
-    "1D00277FBDF2",
-    "1D00277FBDF2",
-    "1D00277FBDF2",
-    "1D00277FBDF2"};
+    "07001162A6D2",
+    "0700110FE6FF",
+    "070010A83E81",
+    "09008FF8047A"};
 
 /**
  * Knock sensors.
@@ -178,12 +178,12 @@ const uint8_t KNOCK_PINS[NUM_KNOCK_SENSORS] = {A2, A3};
 const int KNOCK_SAMPLERATE = 50;
 const int KNOCK_RANGE_MIN = 0;
 const int KNOCK_RANGE_MAX = 100;
-const int KNOCK_THRESHOLD = 20;
+const int KNOCK_THRESHOLD = 15;
 
 const uint8_t SIZE_KNOCK_PATTERN = 5;
 
 const uint8_t KNOCK_PATTERNS[NUM_RECIPES][SIZE_KNOCK_PATTERN] = {
-    {0, 0, 0, 0, 0},
+    {0, 1, 0, 1, 0},
     {1, 1, 1, 1, 1},
     {0, 1, 0, 1, 0}};
 
@@ -212,7 +212,7 @@ const unsigned long LED_KNOCK_DELAY_MS = 50;
  */
 
 const uint16_t LED_PROGRESS_NUM = 60;
-const uint8_t LED_PROGRESS_PIN = 6;
+const uint8_t LED_PROGRESS_PIN = 7;
 
 Adafruit_NeoPixel ledProgress = Adafruit_NeoPixel(LED_PROGRESS_NUM, LED_PROGRESS_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -223,7 +223,7 @@ const uint32_t LED_PROGRESS_COLOR = Adafruit_NeoPixel::Color(255, 255, 0);
  */
 
 const uint16_t LED_EYE_NUM = 20;
-const uint16_t LED_EYE_PIN = 7;
+const uint16_t LED_EYE_PIN = 6;
 
 Adafruit_NeoPixel ledEye = Adafruit_NeoPixel(LED_EYE_NUM, LED_EYE_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -238,9 +238,9 @@ const unsigned long LED_EYE_DELAY_MS = 200;
  */
 
 const unsigned long EYE_AUDIO_TIMINGS[NUM_RECIPES][SIZE_KNOCK_PATTERN] = {
-    {0, 1000, 2000, 2500, 3500},
-    {2000, 4000, 6000, 8000, 10000},
-    {0, 3000, 6000, 9000, 12000}};
+    {0, 1000, 1000, 1000, 1000},
+    {0, 1500, 1500, 1500, 1500},
+    {0, 1000, 1000, 1000, 1000}};
 
 const unsigned long EYE_AUDIO_DELAY_LOOPS_MS = 8000;
 
@@ -317,6 +317,7 @@ void initState()
   validateKnockPatterns();
 
   progState.rgbSensorsColorIndex = rgbSensorsColorIndex;
+  progState.ledKnockSensorsFillMillis = ledKnockSensorsFillMillis;
 
   for (uint8_t i = 0; i < NUM_RGB_SENSORS; i++)
   {
@@ -527,10 +528,24 @@ void runEyeAudioPattern()
     return;
   }
 
-  Serial.print(F("Eye audio pattern: recipe #"));
+  Serial.print(F("Eye audio: recipe #"));
   Serial.print(idxRecipe);
   Serial.print(F(" item #"));
-  Serial.println(idxPattern);
+  Serial.print(idxPattern);
+  Serial.print(F(" ("));
+  Serial.print(millisTarget);
+  Serial.print(F(" :: "));
+  Serial.print(now);
+  Serial.println(F(")"));
+
+  const uint16_t diffMsWarn = TIMER_GENERAL_MS * 2;
+  uint16_t diffMs = abs(now - millisTarget);
+
+  if (diffMs > diffMsWarn)
+  {
+    Serial.println(F("[WARN] Eye audio: Diff with target: "));
+    Serial.println(diffMs);
+  }
 
   uint8_t idxKnock = KNOCK_PATTERNS[idxRecipe][idxPattern];
 
@@ -674,7 +689,7 @@ void readRfid(uint8_t readerIdx)
 
   Serial.print(F("RFID #"));
   Serial.print(readerIdx);
-  Serial.print(F(":"));
+  Serial.print(F(": "));
   Serial.print(tagBuf);
   Serial.println();
   Serial.flush();
@@ -929,12 +944,24 @@ void onKnock(int idx, int v, int up)
     return;
   }
 
+  unsigned long now = millis();
+  const uint16_t bounceMs = 150;
+
+  if (progState.ledKnockSensorsFillMillis[idx] > 0 &&
+      abs(now - progState.ledKnockSensorsFillMillis[idx]) <= bounceMs)
+  {
+    return;
+  }
+
+  Serial.print(F("Push Knock #"));
+  Serial.println(idx);
+
   knockHistory.push(idx);
 
   ledKnockSensors[idx].fill(LED_KNOCK_COLORS[idx]);
   ledKnockSensors[idx].show();
 
-  progState.ledKnockSensorsFillMillis[idx] = millis();
+  progState.ledKnockSensorsFillMillis[idx] = now;
 
   if (isKnockSensorsStateValid())
   {
@@ -1044,14 +1071,19 @@ void setup(void)
   initLedCoals();
   initRfidsTagInRange();
   initTimerRfid();
-  // initKnockSensors();
-  // initLedKnockSensors();
+  initKnockSensors();
+  initLedKnockSensors();
   initTimerGeneral();
-  // initLedProgress();
-  // initAudio();
-  // initLedEye();
+  initLedProgress();
+  initAudio();
+  initLedEye();
 
   Serial.println(F("Forja Dracula"));
+
+  // ToDo: Remove
+  // progState.isRgbSensorsPhaseCompleted = true;
+  // startLedCoals();
+  // advanceToAnvilStep();
 }
 
 void loop(void)
