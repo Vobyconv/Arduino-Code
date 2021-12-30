@@ -9,6 +9,12 @@
 #include <CircularBuffer.h>
 
 /**
+ * Relay.
+ */
+
+const uint8_t PIN_RELAY = 44;
+
+/**
  * RGB sensors.
  */
 
@@ -81,7 +87,7 @@ const ColorDef RECOGNIZED_COLORS[NUM_RECOGNIZED_COLORS] = {
      .blueRatio = 0,
      .ledColor = Adafruit_NeoPixel::Color(255, 255, 0)}};
 
-const uint8_t RGB_SENSORS_COLOR_KEY[NUM_RGB_SENSORS] = {1, 1, 1, 1};
+const uint8_t RGB_SENSORS_COLOR_KEY[NUM_RGB_SENSORS] = {3, 2, 1, 0};
 
 /**
  * RGB sensor timer.
@@ -134,7 +140,7 @@ const uint8_t NUM_RECIPES = 3;
 
 Materials recipes[NUM_RECIPES][NUM_RFID] = {
     {bronze, bronze, bronze, silver, gold},
-    {orichalcum, orichalcum, mithril, mithril, silver},
+    {orichalcum, orichalcum, orichalcum, mithril, mithril},
     {bronze, bronze, silver, silver, silver}};
 
 const uint8_t NUM_TAGS_MATERIAL = 4;
@@ -184,8 +190,8 @@ const uint8_t SIZE_KNOCK_PATTERN = 5;
 
 const uint8_t KNOCK_PATTERNS[NUM_RECIPES][SIZE_KNOCK_PATTERN] = {
     {0, 1, 0, 1, 0},
-    {1, 1, 1, 1, 1},
-    {0, 1, 0, 1, 0}};
+    {1, 1, 1, 0, 0},
+    {0, 0, 1, 1, 0}};
 
 Atm_analog knockAnalogs[NUM_KNOCK_SENSORS];
 Atm_controller knockControllers[NUM_KNOCK_SENSORS];
@@ -211,7 +217,7 @@ const unsigned long LED_KNOCK_DELAY_MS = 50;
  * LED strip to signal progress.
  */
 
-const uint16_t LED_PROGRESS_NUM = 60;
+const uint16_t LED_PROGRESS_NUM = 69;
 const uint8_t LED_PROGRESS_PIN = 7;
 
 Adafruit_NeoPixel ledProgress = Adafruit_NeoPixel(LED_PROGRESS_NUM, LED_PROGRESS_PIN, NEO_GRB + NEO_KHZ800);
@@ -222,14 +228,14 @@ const uint32_t LED_PROGRESS_COLOR = Adafruit_NeoPixel::Color(255, 255, 0);
  * LED strip for the eye of Odin.
  */
 
-const uint16_t LED_EYE_NUM = 20;
+const uint16_t LED_EYE_NUM = 40;
 const uint16_t LED_EYE_PIN = 6;
 
 Adafruit_NeoPixel ledEye = Adafruit_NeoPixel(LED_EYE_NUM, LED_EYE_PIN, NEO_GRB + NEO_KHZ800);
 
 const uint32_t LED_EYE_COLORS[NUM_KNOCK_SENSORS] = {
-    Adafruit_NeoPixel::Color(255, 255, 0),
-    Adafruit_NeoPixel::Color(0, 0, 255)};
+    Adafruit_NeoPixel::Color(0, 0, 255),
+    Adafruit_NeoPixel::Color(255, 255, 0)};
 
 const unsigned long LED_EYE_DELAY_MS = 200;
 
@@ -238,9 +244,9 @@ const unsigned long LED_EYE_DELAY_MS = 200;
  */
 
 const unsigned long EYE_AUDIO_TIMINGS[NUM_RECIPES][SIZE_KNOCK_PATTERN] = {
-    {0, 1000, 1000, 1000, 1000},
     {0, 1500, 1500, 1500, 1500},
-    {0, 1000, 1000, 1000, 1000}};
+    {0, 1500, 1500, 1500, 1500},
+    {0, 1500, 1500, 1500, 1500}};
 
 const unsigned long EYE_AUDIO_DELAY_LOOPS_MS = 8000;
 
@@ -629,6 +635,50 @@ int16_t getActiveRecipe()
   return -1;
 }
 
+void printRfidState()
+{
+  Materials readerMaterials[NUM_RFID];
+
+  for (uint8_t idxRfid = 0; idxRfid < NUM_RFID; idxRfid++)
+  {
+    readerMaterials[idxRfid] = getMaterial(stateTags[idxRfid]);
+
+    if (readerMaterials[idxRfid] == unknown)
+    {
+      continue;
+    }
+
+    Serial.print(F(">>> RFID #"));
+    Serial.print(idxRfid);
+    Serial.print(F(": "));
+
+    if (readerMaterials[idxRfid] == gold)
+    {
+      Serial.println(F("Gold"));
+    }
+    else if (readerMaterials[idxRfid] == silver)
+    {
+      Serial.println(F("Silver"));
+    }
+    else if (readerMaterials[idxRfid] == orichalcum)
+    {
+      Serial.println(F("Orichalcum"));
+    }
+    else if (readerMaterials[idxRfid] == mithril)
+    {
+      Serial.println(F("Mithril"));
+    }
+    else if (readerMaterials[idxRfid] == bronze)
+    {
+      Serial.println(F("Bronze"));
+    }
+    else
+    {
+      Serial.println(F("UNKNOWN"));
+    }
+  }
+}
+
 void onTagInRangeChange(int idx, int v, int up)
 {
   bool isInRange = v == 1;
@@ -644,6 +694,7 @@ void onTagInRangeChange(int idx, int v, int up)
   }
 
   memset(stateTags[idx], 0, sizeof(stateTags[idx]));
+  printRfidState();
 
   // ToDo: We should use Serial instead of sSerial5 in production
 
@@ -687,19 +738,14 @@ void readRfid(uint8_t readerIdx)
     return;
   }
 
-  Serial.print(F("RFID #"));
-  Serial.print(readerIdx);
-  Serial.print(F(": "));
-  Serial.print(tagBuf);
-  Serial.println();
-  Serial.flush();
-
   for (int k = 0; k < LEN_TAG_ID; k++)
   {
     stateTags[readerIdx][k] = tagBuf[k];
   }
 
   stateTagsMillis[readerIdx] = millis();
+
+  printRfidState();
 }
 
 void onTimerRfid(int idx, int v, int up)
@@ -709,7 +755,7 @@ void onTimerRfid(int idx, int v, int up)
     readRfid(i);
   }
 
-  if (progState.isRgbSensorsPhaseCompleted || progState.isAnvilStepActive)
+  if (!progState.isRgbSensorsPhaseCompleted || progState.isAnvilStepActive)
   {
     return;
   }
@@ -1079,11 +1125,6 @@ void setup(void)
   initLedEye();
 
   Serial.println(F("Forja Dracula"));
-
-  // ToDo: Remove
-  // progState.isRgbSensorsPhaseCompleted = true;
-  // startLedCoals();
-  // advanceToAnvilStep();
 }
 
 void loop(void)
