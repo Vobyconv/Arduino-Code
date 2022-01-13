@@ -101,6 +101,8 @@ Atm_timer timerRgbSensor;
  * RFID readers.
  */
 
+const bool USE_MULTIPLE_SWSERIALS = false;
+
 const uint8_t NUM_RFID = 5;
 
 SoftwareSerial sSerial4 = SoftwareSerial(52, 53);
@@ -110,7 +112,7 @@ SerialRFID rfids[NUM_RFID] = {
     SerialRFID(Serial1),
     SerialRFID(Serial2),
     SerialRFID(Serial3),
-    SerialRFID(sSerial4),
+    SerialRFID(Serial),
     SerialRFID(sSerial5)};
 
 Atm_digital tagInRangeDigitals[NUM_RFID];
@@ -696,17 +698,22 @@ void onTagInRangeChange(int idx, int v, int up)
   memset(stateTags[idx], 0, sizeof(stateTags[idx]));
   printRfidState();
 
-  // ToDo: We should use Serial instead of sSerial5 in production
-
-  if (idx == 3)
+  if (USE_MULTIPLE_SWSERIALS)
   {
-    sSerial4.listen();
-    Serial.println(F("Listening on sSerial4"));
+    if (idx == 3)
+    {
+      sSerial4.listen();
+      Serial.println(F("Listening on sSerial4"));
+    }
+    else if (idx == 4)
+    {
+      sSerial5.listen();
+      Serial.println(F("Listening on sSerial5"));
+    }
   }
-  else if (idx == 4)
+  else
   {
     sSerial5.listen();
-    Serial.println(F("Listening on sSerial5"));
   }
 }
 
@@ -1104,7 +1111,7 @@ void initSerials()
   Serial3.begin(9600);
   sSerial4.begin(9600);
   sSerial5.begin(9600);
-  sSerial4.listen();
+  sSerial5.listen();
 }
 
 void setup(void)
