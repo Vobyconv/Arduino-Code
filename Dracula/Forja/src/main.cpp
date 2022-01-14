@@ -246,9 +246,9 @@ const unsigned long LED_EYE_DELAY_MS = 200;
  */
 
 const unsigned long EYE_AUDIO_TIMINGS[NUM_RECIPES][SIZE_KNOCK_PATTERN] = {
-    {0, 1500, 1500, 1500, 1500},
-    {0, 1500, 1500, 1500, 1500},
-    {0, 1500, 1500, 1500, 1500}};
+    {0, 4000, 4000, 4000, 4000},
+    {0, 4000, 4000, 4000, 4000},
+    {0, 4000, 4000, 4000, 4000}};
 
 const unsigned long EYE_AUDIO_DELAY_LOOPS_MS = 8000;
 
@@ -259,7 +259,9 @@ const unsigned long EYE_AUDIO_DELAY_LOOPS_MS = 8000;
 const uint8_t PIN_AUDIO_ACT = 8;
 const uint8_t PIN_AUDIO_RST = 9;
 const uint8_t AUDIO_TRACK_PINS[NUM_KNOCK_SENSORS] = {10, 11};
-const uint8_t PIN_AUDIO_TRACK_FINAL = 49;
+const uint8_t PIN_AUDIO_TRACK_COALS = 12;
+const uint8_t PIN_AUDIO_TRACK_STAGE = 49;
+const uint8_t PIN_AUDIO_TRACK_VICTORY = 50;
 const unsigned long AUDIO_PLAY_DELAY_MS = 200;
 
 /**
@@ -398,7 +400,10 @@ void initAudioPins()
     pinMode(AUDIO_TRACK_PINS[i], INPUT);
   }
 
-  pinMode(PIN_AUDIO_TRACK_FINAL, INPUT);
+  pinMode(PIN_AUDIO_TRACK_COALS, INPUT);
+  pinMode(PIN_AUDIO_TRACK_STAGE, INPUT);
+  pinMode(PIN_AUDIO_TRACK_VICTORY, INPUT);
+
   pinMode(PIN_AUDIO_ACT, INPUT);
   pinMode(PIN_AUDIO_RST, INPUT);
 }
@@ -410,7 +415,17 @@ void forceStopAudio()
     pinMode(AUDIO_TRACK_PINS[i], INPUT);
   }
 
-  pinMode(PIN_AUDIO_TRACK_FINAL, INPUT);
+  pinMode(PIN_AUDIO_TRACK_COALS, INPUT);
+  pinMode(PIN_AUDIO_TRACK_STAGE, INPUT);
+  pinMode(PIN_AUDIO_TRACK_VICTORY, INPUT);
+
+  progState.audioPlayMillis = 0;
+}
+
+void forcePlayTrack(uint8_t trackPin)
+{
+  forceStopAudio();
+  playTrack(trackPin);
 }
 
 void resetAudio()
@@ -495,6 +510,8 @@ void advanceToNextMaterialsPhase()
 
   Serial.print(F("Advancing to next materials phase: recipe #"));
   Serial.println(progState.currentRecipe);
+
+  forcePlayTrack(PIN_AUDIO_TRACK_STAGE);
 
   progState.isAnvilStepActive = false;
   stopEyeAudioPattern();
@@ -778,8 +795,11 @@ void readRfid(uint8_t readerIdx)
   const uint32_t blinkColor = Adafruit_NeoPixel::Color(250, 250, 250);
   const unsigned long blinkDelay = 30;
 
-  ledEye.fill(blinkColor);
-  ledEye.show();
+  if (!progState.isAnvilStepActive)
+  {
+    ledEye.fill(blinkColor);
+    ledEye.show();
+  }
 
   for (int k = 0; k < LEN_TAG_ID; k++)
   {
@@ -790,9 +810,12 @@ void readRfid(uint8_t readerIdx)
 
   printRfidState();
 
-  delay(blinkDelay);
-  ledEye.clear();
-  ledEye.show();
+  if (!progState.isAnvilStepActive)
+  {
+    delay(blinkDelay);
+    ledEye.clear();
+    ledEye.show();
+  }
 }
 
 void onTimerRfid(int idx, int v, int up)
@@ -934,6 +957,7 @@ void onTimerRgbSensor(int idx, int v, int up)
 
   if (isRgbSensorsStateValid())
   {
+    forcePlayTrack(PIN_AUDIO_TRACK_COALS);
     progState.isRgbSensorsPhaseCompleted = true;
     startLedCoals();
   }
@@ -1136,12 +1160,11 @@ void onTimerGeneral(int idx, int v, int up)
     Serial.println(F("The end"));
     progState.isGameComplete = true;
     stopEyeAudioPattern();
-    forceStopAudio();
     openRelay(PIN_RELAY);
   }
   else if (progState.isGameComplete)
   {
-    playTrack(PIN_AUDIO_TRACK_FINAL);
+    playTrack(PIN_AUDIO_TRACK_VICTORY);
   }
 }
 
