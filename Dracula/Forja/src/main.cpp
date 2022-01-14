@@ -775,6 +775,12 @@ void readRfid(uint8_t readerIdx)
     return;
   }
 
+  const uint32_t blinkColor = Adafruit_NeoPixel::Color(250, 250, 250);
+  const unsigned long blinkDelay = 30;
+
+  ledEye.fill(blinkColor);
+  ledEye.show();
+
   for (int k = 0; k < LEN_TAG_ID; k++)
   {
     stateTags[readerIdx][k] = tagBuf[k];
@@ -783,6 +789,10 @@ void readRfid(uint8_t readerIdx)
   stateTagsMillis[readerIdx] = millis();
 
   printRfidState();
+
+  delay(blinkDelay);
+  ledEye.clear();
+  ledEye.show();
 }
 
 void onTimerRfid(int idx, int v, int up)
