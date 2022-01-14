@@ -1155,6 +1155,26 @@ void initSerials()
   sSerial5.listen();
 }
 
+void startupEffect()
+{
+  const uint8_t iters = 3;
+  const uint16_t delayMs = 300;
+  const uint32_t color = Adafruit_NeoPixel::Color(250, 250, 250);
+
+  for (uint8_t i = 0; i < iters; i++)
+  {
+    ledEye.fill(color);
+    ledEye.show();
+    delay(delayMs);
+    ledEye.clear();
+    ledEye.show();
+    delay(delayMs);
+  }
+
+  ledEye.clear();
+  ledEye.show();
+}
+
 void setup(void)
 {
   initSerials();
@@ -1174,6 +1194,7 @@ void setup(void)
   initRelay(PIN_RELAY);
 
   Serial.println(F("Forja Dracula"));
+  startupEffect();
 }
 
 void loop(void)
