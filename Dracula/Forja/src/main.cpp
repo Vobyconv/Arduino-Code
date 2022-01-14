@@ -259,6 +259,7 @@ const unsigned long EYE_AUDIO_DELAY_LOOPS_MS = 8000;
 const uint8_t PIN_AUDIO_ACT = 8;
 const uint8_t PIN_AUDIO_RST = 9;
 const uint8_t AUDIO_TRACK_PINS[NUM_KNOCK_SENSORS] = {10, 11};
+const uint8_t PIN_AUDIO_TRACK_FINAL = 49;
 const unsigned long AUDIO_PLAY_DELAY_MS = 200;
 
 /**
@@ -297,6 +298,7 @@ typedef struct programState
   unsigned long lastEyeAudioMillis;
   uint8_t currentEyeAudioIdx;
   bool ledEyeClearFlag;
+  bool isGameComplete;
 } ProgramState;
 
 ProgramState progState;
@@ -351,6 +353,23 @@ void initState()
   progState.lastEyeAudioMillis = 0;
   progState.currentEyeAudioIdx = 0;
   progState.ledEyeClearFlag = false;
+  progState.isGameComplete = false;
+}
+
+void lockRelay(uint8_t pin)
+{
+  digitalWrite(pin, LOW);
+}
+
+void openRelay(uint8_t pin)
+{
+  digitalWrite(pin, HIGH);
+}
+
+void initRelay(uint8_t pin)
+{
+  pinMode(pin, OUTPUT);
+  lockRelay(pin);
 }
 
 bool isTrackPlaying()
@@ -379,8 +398,19 @@ void initAudioPins()
     pinMode(AUDIO_TRACK_PINS[i], INPUT);
   }
 
+  pinMode(PIN_AUDIO_TRACK_FINAL, INPUT);
   pinMode(PIN_AUDIO_ACT, INPUT);
   pinMode(PIN_AUDIO_RST, INPUT);
+}
+
+void forceStopAudio()
+{
+  for (uint8_t i = 0; i < NUM_KNOCK_SENSORS; i++)
+  {
+    pinMode(AUDIO_TRACK_PINS[i], INPUT);
+  }
+
+  pinMode(PIN_AUDIO_TRACK_FINAL, INPUT);
 }
 
 void resetAudio()
@@ -1077,13 +1107,8 @@ void clearAudioPins()
   if (diffMs >= AUDIO_PLAY_DELAY_MS)
   {
     Serial.println(F("Clearing audio pins"));
-
     progState.audioPlayMillis = 0;
-
-    for (uint8_t i = 0; i < NUM_KNOCK_SENSORS; i++)
-    {
-      pinMode(AUDIO_TRACK_PINS[i], INPUT);
-    }
+    forceStopAudio();
   }
 }
 
@@ -1092,6 +1117,22 @@ void onTimerGeneral(int idx, int v, int up)
   clearLedKnockSensors();
   clearAudioPins();
   runEyeAudioPattern();
+
+  const bool isGameComplete = progState.isRgbSensorsPhaseCompleted &&
+                              progState.currentRecipe >= NUM_RECIPES;
+
+  if (isGameComplete && !progState.isGameComplete)
+  {
+    Serial.println(F("The end"));
+    progState.isGameComplete = true;
+    stopEyeAudioPattern();
+    forceStopAudio();
+    openRelay(PIN_RELAY);
+  }
+  else if (progState.isGameComplete)
+  {
+    playTrack(PIN_AUDIO_TRACK_FINAL);
+  }
 }
 
 void initTimerGeneral()
@@ -1130,6 +1171,7 @@ void setup(void)
   initLedProgress();
   initAudio();
   initLedEye();
+  initRelay(PIN_RELAY);
 
   Serial.println(F("Forja Dracula"));
 }
