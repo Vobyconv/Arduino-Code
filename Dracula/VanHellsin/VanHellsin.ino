@@ -293,14 +293,14 @@ void openReles(){
   Serial.print(F("solucion  : "));
   Serial.println(solucion);
   if (solucion == 2){
-  digitalWrite(rele01, HIGH);  
-  Serial.println(F(" Open02 "));
+  //digitalWrite(rele01, HIGH);  
+  //Serial.println(F(" Open02 "));
   }
   if (solucion == 4){
   delay(500);
   digitalWrite(rele01, HIGH);  
   Serial.println(F(" Open02 "));
-  delay(500);
+  delay(1500);
   digitalWrite(rele02, HIGH);  
   Serial.println(F(" Open01 "));
   
