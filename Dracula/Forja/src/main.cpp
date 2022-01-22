@@ -105,8 +105,7 @@ const bool USE_MULTIPLE_SWSERIALS = false;
 
 const uint8_t NUM_RFID = 5;
 
-// ToDo: This pin clashes with an audio FX board pin
-SoftwareSerial sSerial4 = SoftwareSerial(52, 53);
+SoftwareSerial sSerial4 = SoftwareSerial(53, 62);
 SoftwareSerial sSerial5 = SoftwareSerial(50, 51);
 
 SerialRFID rfids[NUM_RFID] = {
@@ -287,6 +286,9 @@ unsigned long stateTagsMillis[NUM_RFID];
 const uint16_t KNOCK_BUF_SIZE = 30;
 CircularBuffer<int, KNOCK_BUF_SIZE> knockHistory;
 
+const uint16_t AUDIO_BUF_SIZE = 2;
+CircularBuffer<int, AUDIO_BUF_SIZE> audioPinsQueue;
+
 unsigned long ledKnockSensorsFillMillis[NUM_KNOCK_SENSORS];
 
 typedef struct programState
@@ -329,6 +331,9 @@ void validateKnockPatterns()
 void initState()
 {
   validateKnockPatterns();
+
+  knockHistory.clear();
+  audioPinsQueue.clear();
 
   progState.rgbSensorsColorIndex = rgbSensorsColorIndex;
   progState.ledKnockSensorsFillMillis = ledKnockSensorsFillMillis;
@@ -425,11 +430,9 @@ void forceStopAudio()
   progState.audioPlayMillis = 0;
 }
 
-void forcePlayTrack(uint8_t trackPin)
+void enqueueTrack(uint8_t trackPin)
 {
-  // ToDo: Fix this
-  forceStopAudio();
-  playTrack(trackPin);
+  audioPinsQueue.push(trackPin);
 }
 
 void resetAudio()
@@ -515,7 +518,7 @@ void advanceToNextMaterialsPhase()
   Serial.print(F("Advancing to next materials phase: recipe #"));
   Serial.println(progState.currentRecipe);
 
-  forcePlayTrack(PIN_AUDIO_TRACK_STAGE);
+  enqueueTrack(PIN_AUDIO_TRACK_STAGE);
 
   progState.isAnvilStepActive = false;
   stopEyeAudioPattern();
@@ -925,7 +928,7 @@ void updateLedRgbSensors()
 
 void onRgbSensorsStageEnd()
 {
-  forcePlayTrack(PIN_AUDIO_TRACK_COALS);
+  enqueueTrack(PIN_AUDIO_TRACK_COALS);
   progState.isRgbSensorsPhaseCompleted = true;
   progState.isCoalsEffectActive = true;
 }
@@ -1168,12 +1171,24 @@ void runEndgame()
   }
 }
 
+void processAudioQueue()
+{
+  if (audioPinsQueue.isEmpty() || isTrackPlaying())
+  {
+    return;
+  }
+
+  int trackPin = audioPinsQueue.shift();
+  playTrack(trackPin);
+}
+
 void onTimerGeneral(int idx, int v, int up)
 {
   clearLedKnockSensors();
   clearAudioPins();
   runEyeAudioPattern();
   runCoalsEffect();
+  processAudioQueue();
   runEndgame();
 }
 
