@@ -105,6 +105,7 @@ const bool USE_MULTIPLE_SWSERIALS = false;
 
 const uint8_t NUM_RFID = 5;
 
+// ToDo: This pin clashes with an audio FX board pin
 SoftwareSerial sSerial4 = SoftwareSerial(52, 53);
 SoftwareSerial sSerial5 = SoftwareSerial(50, 51);
 
@@ -250,7 +251,7 @@ const unsigned long EYE_AUDIO_TIMINGS[NUM_RECIPES][SIZE_KNOCK_PATTERN] = {
     {0, 4000, 4000, 4000, 4000},
     {0, 4000, 4000, 4000, 4000}};
 
-const unsigned long EYE_AUDIO_DELAY_LOOPS_MS = 8000;
+const unsigned long EYE_AUDIO_DELAY_LOOPS_MS = 10000;
 
 /**
  * Audio FX.
@@ -261,7 +262,7 @@ const uint8_t PIN_AUDIO_RST = 9;
 const uint8_t AUDIO_TRACK_PINS[NUM_KNOCK_SENSORS] = {10, 11};
 const uint8_t PIN_AUDIO_TRACK_COALS = 12;
 const uint8_t PIN_AUDIO_TRACK_STAGE = 49;
-const uint8_t PIN_AUDIO_TRACK_VICTORY = 50;
+const uint8_t PIN_AUDIO_TRACK_VICTORY = 52;
 const unsigned long AUDIO_PLAY_DELAY_MS = 200;
 
 /**
@@ -301,6 +302,7 @@ typedef struct programState
   uint8_t currentEyeAudioIdx;
   bool ledEyeClearFlag;
   bool isGameComplete;
+  bool isCoalsEffectActive;
 } ProgramState;
 
 ProgramState progState;
@@ -356,6 +358,7 @@ void initState()
   progState.currentEyeAudioIdx = 0;
   progState.ledEyeClearFlag = false;
   progState.isGameComplete = false;
+  progState.isCoalsEffectActive = false;
 }
 
 void lockRelay(uint8_t pin)
@@ -424,6 +427,7 @@ void forceStopAudio()
 
 void forcePlayTrack(uint8_t trackPin)
 {
+  // ToDo: Fix this
   forceStopAudio();
   playTrack(trackPin);
 }
@@ -792,15 +796,6 @@ void readRfid(uint8_t readerIdx)
     return;
   }
 
-  const uint32_t blinkColor = Adafruit_NeoPixel::Color(250, 250, 250);
-  const unsigned long blinkDelay = 30;
-
-  if (!progState.isAnvilStepActive)
-  {
-    ledEye.fill(blinkColor);
-    ledEye.show();
-  }
-
   for (int k = 0; k < LEN_TAG_ID; k++)
   {
     stateTags[readerIdx][k] = tagBuf[k];
@@ -809,13 +804,6 @@ void readRfid(uint8_t readerIdx)
   stateTagsMillis[readerIdx] = millis();
 
   printRfidState();
-
-  if (!progState.isAnvilStepActive)
-  {
-    delay(blinkDelay);
-    ledEye.clear();
-    ledEye.show();
-  }
 }
 
 void onTimerRfid(int idx, int v, int up)
@@ -935,10 +923,11 @@ void updateLedRgbSensors()
   }
 }
 
-void startLedCoals()
+void onRgbSensorsStageEnd()
 {
-  ledCoals.fill(Adafruit_NeoPixel::Color(255, 0, 0));
-  ledCoals.show();
+  forcePlayTrack(PIN_AUDIO_TRACK_COALS);
+  progState.isRgbSensorsPhaseCompleted = true;
+  progState.isCoalsEffectActive = true;
 }
 
 void onTimerRgbSensor(int idx, int v, int up)
@@ -957,9 +946,7 @@ void onTimerRgbSensor(int idx, int v, int up)
 
   if (isRgbSensorsStateValid())
   {
-    forcePlayTrack(PIN_AUDIO_TRACK_COALS);
-    progState.isRgbSensorsPhaseCompleted = true;
-    startLedCoals();
+    onRgbSensorsStageEnd();
   }
 }
 
@@ -1146,12 +1133,25 @@ void clearAudioPins()
   }
 }
 
-void onTimerGeneral(int idx, int v, int up)
+void runCoalsEffect()
 {
-  clearLedKnockSensors();
-  clearAudioPins();
-  runEyeAudioPattern();
+  if (!progState.isCoalsEffectActive)
+  {
+    ledCoals.clear();
+    ledCoals.show();
+    return;
+  }
 
+  for (uint16_t i = 0; i < ledCoals.numPixels(); i++)
+  {
+    ledCoals.setPixelColor(i, random(100, 250), 0, 0);
+  }
+
+  ledCoals.show();
+}
+
+void runEndgame()
+{
   const bool isGameComplete = progState.isRgbSensorsPhaseCompleted &&
                               progState.currentRecipe >= NUM_RECIPES;
 
@@ -1166,6 +1166,15 @@ void onTimerGeneral(int idx, int v, int up)
   {
     playTrack(PIN_AUDIO_TRACK_VICTORY);
   }
+}
+
+void onTimerGeneral(int idx, int v, int up)
+{
+  clearLedKnockSensors();
+  clearAudioPins();
+  runEyeAudioPattern();
+  runCoalsEffect();
+  runEndgame();
 }
 
 void initTimerGeneral()
@@ -1190,7 +1199,7 @@ void initSerials()
 
 void startupEffect()
 {
-  const uint8_t iters = 3;
+  const uint8_t iters = 5;
   const uint16_t delayMs = 300;
   const uint32_t color = Adafruit_NeoPixel::Color(250, 250, 250);
 
