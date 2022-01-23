@@ -145,6 +145,8 @@ Materials recipes[NUM_RECIPES][NUM_RFID] = {
     {orichalcum, orichalcum, orichalcum, mithril, mithril},
     {bronze, bronze, silver, silver, silver}};
 
+const bool ONE_UNKNOWN_ALLOWED = true;
+
 const uint8_t NUM_TAGS_MATERIAL = 4;
 
 char tagsGold[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
@@ -246,9 +248,9 @@ const unsigned long LED_EYE_DELAY_MS = 200;
  */
 
 const unsigned long EYE_AUDIO_TIMINGS[NUM_RECIPES][SIZE_KNOCK_PATTERN] = {
-    {0, 4000, 4000, 4000, 4000},
-    {0, 4000, 4000, 4000, 4000},
-    {0, 4000, 4000, 4000, 4000}};
+    {0, 1600, 1600, 1600, 1600},
+    {0, 1600, 1600, 1600, 1600},
+    {0, 1600, 1600, 1600, 1600}};
 
 const unsigned long EYE_AUDIO_DELAY_LOOPS_MS = 10000;
 
@@ -518,7 +520,10 @@ void advanceToNextMaterialsPhase()
   Serial.print(F("Advancing to next materials phase: recipe #"));
   Serial.println(progState.currentRecipe);
 
-  enqueueTrack(PIN_AUDIO_TRACK_STAGE);
+  if (progState.currentRecipe < NUM_RECIPES)
+  {
+    enqueueTrack(PIN_AUDIO_TRACK_STAGE);
+  }
 
   progState.isAnvilStepActive = false;
   stopEyeAudioPattern();
@@ -656,6 +661,22 @@ Materials getMaterial(char *theTag)
   return unknown;
 }
 
+bool equalMaterialArrays(Materials a[], Materials b[])
+{
+  bool isEqual = true;
+
+  for (uint8_t i = 0; i < NUM_RFID; i++)
+  {
+    if (a[i] != b[i])
+    {
+      isEqual = false;
+      break;
+    }
+  }
+
+  return isEqual;
+}
+
 int16_t getActiveRecipe()
 {
   Materials readerMaterials[NUM_RFID];
@@ -667,24 +688,40 @@ int16_t getActiveRecipe()
 
   KickSort<Materials>::quickSort(readerMaterials, NUM_RFID);
 
+  Materials bufMaterials[NUM_RFID];
+
   for (uint8_t idxRecipe = 0; idxRecipe < NUM_RECIPES; idxRecipe++)
   {
-    KickSort<Materials>::quickSort(recipes[idxRecipe], NUM_RFID);
-
-    bool isEqual = true;
-
-    for (uint8_t i = 0; i < NUM_RFID; i++)
+    if (ONE_UNKNOWN_ALLOWED)
     {
-      if (recipes[idxRecipe][i] != readerMaterials[i])
+      for (uint8_t pivotUnknown = 0; pivotUnknown < NUM_RFID; pivotUnknown++)
       {
-        isEqual = false;
-        break;
+        for (uint8_t i = 0; i < NUM_RFID; i++)
+        {
+          bufMaterials[i] = i == pivotUnknown ? unknown : recipes[idxRecipe][i];
+        }
+
+        KickSort<Materials>::quickSort(bufMaterials, NUM_RFID);
+
+        if (equalMaterialArrays(bufMaterials, readerMaterials))
+        {
+          return idxRecipe;
+        }
       }
     }
-
-    if (isEqual)
+    else
     {
-      return idxRecipe;
+      for (uint8_t i = 0; i < NUM_RFID; i++)
+      {
+        bufMaterials[i] = recipes[idxRecipe][i];
+      }
+
+      KickSort<Materials>::quickSort(bufMaterials, NUM_RFID);
+
+      if (equalMaterialArrays(bufMaterials, readerMaterials))
+      {
+        return idxRecipe;
+      }
     }
   }
 
@@ -798,6 +835,20 @@ void readRfid(uint8_t readerIdx)
   {
     return;
   }
+
+  const uint32_t blinkColor = Adafruit_NeoPixel::gamma32(Adafruit_NeoPixel::Color(255, 164, 0));
+  const uint16_t blinkFirst = (int)(ledCoals.numPixels() * 0.8);
+
+  if (progState.isRgbSensorsPhaseCompleted)
+  {
+    ledCoals.fill(blinkColor, blinkFirst);
+    ledCoals.show();
+  }
+
+  // Serial.print(F("RFID #"));
+  // Serial.print(readerIdx);
+  // Serial.print(F(": "));
+  // Serial.println(tagBuf);
 
   for (int k = 0; k < LEN_TAG_ID; k++)
   {
@@ -1177,6 +1228,9 @@ void processAudioQueue()
   {
     return;
   }
+
+  Serial.print(F("Audio queue size: "));
+  Serial.println(audioPinsQueue.size());
 
   int trackPin = audioPinsQueue.shift();
   playTrack(trackPin);
