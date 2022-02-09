@@ -48,60 +48,39 @@ void setup()
   Keyboard.begin();
 }
 
-void loopMuxOne()
+void loopMux(CD74HC4067 &theMux, int sig, int *lastChannel, const uint8_t *muxMap, int muxId)
 {
   for (int idxChannel = 0; idxChannel < NUM_MUX_CHANNELS; idxChannel++)
   {
-    muxOne.channel(idxChannel);
+    theMux.channel(idxChannel);
 
-    int level = digitalRead(MUX_ONE_SIG);
+    int level = digitalRead(sig);
 
-    if (level == LOW && lastChannelMuxOne < 0)
+    if (level == LOW && (*lastChannel) < 0)
     {
-      Serial.print(F("Mux #1 :: "));
+      Serial.print(muxId);
+      Serial.print(F(" :: LOW :: "));
       Serial.println(idxChannel);
 
-      Keyboard.press(MUX_ONE_MAP[idxChannel]);
+      Keyboard.press(muxMap[idxChannel]);
       delay(PRESS_DELAY_MS);
       Keyboard.releaseAll();
 
-      lastChannelMuxOne = idxChannel;
+      (*lastChannel) = idxChannel;
     }
-    else if (level == HIGH && lastChannelMuxOne == idxChannel)
+    else if (level == HIGH && (*lastChannel) == idxChannel)
     {
-      lastChannelMuxOne = -1;
-    }
-  }
-}
-
-void loopMuxTwo()
-{
-  for (int idxChannel = 0; idxChannel < NUM_MUX_CHANNELS; idxChannel++)
-  {
-    muxTwo.channel(idxChannel);
-
-    int level = digitalRead(MUX_TWO_SIG);
-
-    if (level == LOW && lastChannelMuxTwo < 0)
-    {
-      Serial.print(F("Mux #2 :: "));
+      Serial.print(muxId);
+      Serial.print(F(" :: HIGH :: "));
       Serial.println(idxChannel);
 
-      Keyboard.press(MUX_TWO_MAP[idxChannel]);
-      delay(PRESS_DELAY_MS);
-      Keyboard.releaseAll();
-
-      lastChannelMuxTwo = idxChannel;
-    }
-    else if (level == HIGH && lastChannelMuxTwo == idxChannel)
-    {
-      lastChannelMuxTwo = -1;
+      (*lastChannel) = -1;
     }
   }
 }
 
 void loop()
 {
-  loopMuxOne();
-  loopMuxTwo();
+  loopMux(muxOne, MUX_ONE_SIG, &lastChannelMuxOne, MUX_ONE_MAP, 1);
+  loopMux(muxTwo, MUX_TWO_SIG, &lastChannelMuxTwo, MUX_TWO_MAP, 2);
 }
