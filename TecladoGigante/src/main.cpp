@@ -6,8 +6,8 @@
 CD74HC4067 muxOne(5, 4, 3, 2);
 CD74HC4067 muxTwo(10, 9, 8, 7);
 
-const int MUX_ONE_SIG = A0;
-const int MUX_TWO_SIG = A1;
+const int MUX_ONE_SIG = A1;
+const int MUX_TWO_SIG = A2;
 
 const int NUM_MUX_CHANNELS = 16;
 
@@ -30,10 +30,12 @@ const int NUM_MUX_CHANNELS = 16;
 const uint8_t CODE_ENYE = 0x33;
 
 const uint8_t MUX_ONE_MAP[NUM_MUX_CHANNELS] = {
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', CODE_ENYE, 'O'};
+    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'A', 'S', 'D', 'F', 'G', 'H'};
 
 const uint8_t MUX_TWO_MAP[NUM_MUX_CHANNELS] = {
-    'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', KEY_RETURN, KEY_DELETE, ' ', ' ', ' '};
+    'J', 'K', 'L', CODE_ENYE, 'Z', 'X', 'C', 'V', 'B', 'N', 'M', KEY_RETURN, KEY_DELETE, ' ', ' ', ' '};
+
+//CODE_ENYE
 
 const unsigned long PRESS_DELAY_MS = 100;
 
