@@ -31,6 +31,10 @@ bool currConfiguration[LED_NUM] = {
 
 bool flagRelayOpen = false;
 
+const unsigned long OPEN_DELAY_MS = 4000;
+
+unsigned long openRelayMillis = 0;
+
 void lockRelay()
 {
   digitalWrite(RELAY_PIN, LOW);
@@ -107,9 +111,17 @@ bool isCurrentConfigValid()
 
 void checkState()
 {
-  if (isCurrentConfigValid() && !flagRelayOpen)
+  if (isCurrentConfigValid() && openRelayMillis == 0)
   {
-    Serial.println(F("Valid config: opening relay"));
+    Serial.print(F("Valid config: Waiting "));
+    Serial.print(OPEN_DELAY_MS);
+    Serial.println(F(" ms to open relay"));
+    openRelayMillis = millis() + OPEN_DELAY_MS;
+  }
+
+  if (!flagRelayOpen && openRelayMillis > 0 && millis() > openRelayMillis)
+  {
+    Serial.println(F("Opening relay"));
     openRelay();
   }
 }
