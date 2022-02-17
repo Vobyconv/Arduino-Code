@@ -111,7 +111,14 @@ bool isCurrentConfigValid()
 
 void checkState()
 {
-  if (isCurrentConfigValid() && openRelayMillis == 0)
+  bool isValid = isCurrentConfigValid();
+
+  if (!isValid)
+  {
+    openRelayMillis = 0;
+  }
+
+  if (isValid && openRelayMillis == 0)
   {
     Serial.print(F("Valid config: Waiting "));
     Serial.print(OPEN_DELAY_MS);
