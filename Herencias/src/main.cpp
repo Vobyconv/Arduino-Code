@@ -24,7 +24,6 @@ Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(
 const uint8_t PIN_BTN_SWITCH = 3;
 const uint8_t PIN_BTN_READ = 4;
 
-Atm_button buttonSwitch;
 Atm_button buttonRead;
 
 /**
@@ -92,15 +91,15 @@ const String STR_ERROR_UNKNOWN = String("Elemento desconocido");
  * Program state.
  */
 
-const uint32_t TIMER_STATE_MS = 200;
+const uint32_t TIMER_STATE_MS = 150;
 
 Atm_timer stateTimer;
-uint8_t stateReaderActiveIdx;
+bool stateReaderSwitch;
 unsigned long stateReadStartMs;
 
 void initState()
 {
-  stateReaderActiveIdx = 0;
+  stateReaderSwitch = false;
   stateReadStartMs = 0;
 }
 
@@ -194,6 +193,12 @@ void initRfidReaders()
 
 int readRfid(uint8_t readerIdx)
 {
+  if (readerIdx >= NUM_READERS)
+  {
+    Serial.println(F("WARNING: Unexpected RFID index"));
+    return CODE_UNKNOWN;
+  }
+
   Serial.print(F("Reading RFID #"));
   Serial.println(readerIdx);
 
@@ -205,14 +210,13 @@ int readRfid(uint8_t readerIdx)
   }
 
   int numTags = readerIdx == 0 ? NUM_TAGS_ONE : NUM_TAGS_TWO;
+  String *tagsArr = readerIdx == 0 ? tagsOne : tagsTwo;
 
   for (int tagIdx = 0; tagIdx < numTags; tagIdx++)
   {
-    bool isEqualTag = readerIdx == 0
-                          ? tagsOne[tagIdx].compareTo(tagId) == 0
-                          : tagsTwo[tagIdx].compareTo(tagId) == 0;
+    bool isEqual = tagsArr[tagIdx].compareTo(tagId) == 0;
 
-    if (isEqualTag)
+    if (isEqual)
     {
       return tagIdx;
     }
@@ -221,14 +225,27 @@ int readRfid(uint8_t readerIdx)
   return CODE_UNKNOWN;
 }
 
+uint8_t getActiveReaderIdx()
+{
+  return stateReaderSwitch ? 1 : 0;
+}
+
 void updateRfidState()
 {
-  if (stateReadStartMs == 0 || stateReaderActiveIdx >= 2)
+  if (stateReadStartMs == 0)
   {
     return;
   }
 
-  int tagIdx = readRfid(stateReaderActiveIdx);
+  uint8_t readerIdx = getActiveReaderIdx();
+
+  if (readerIdx >= NUM_READERS)
+  {
+    Serial.println(F("WARNING: Unexpected RFID index"));
+    return;
+  }
+
+  int tagIdx = readRfid(readerIdx);
 
   if (tagIdx == CODE_UNKNOWN)
   {
@@ -237,19 +254,16 @@ void updateRfidState()
   }
   else if (tagIdx >= 0)
   {
-    Serial.print(F("Found valid tag: "));
-    Serial.println(tagIdx);
+    Serial.print(F("Found tag #"));
+    Serial.print(tagIdx);
+    Serial.print(F(" on RFID #"));
+    Serial.println(readerIdx);
 
-    String theMessage = stateReaderActiveIdx == 0
-                            ? tagMessagesOne[tagIdx]
-                            : tagMessagesTwo[tagIdx];
+    String msg = readerIdx == 0 ? tagMessagesOne[tagIdx] : tagMessagesTwo[tagIdx];
+    uint8_t tPin = readerIdx == 0 ? pinTracksOne[tagIdx] : pinTracksTwo[tagIdx];
 
-    uint8_t theTrackPin = stateReaderActiveIdx == 0
-                              ? pinTracksOne[tagIdx]
-                              : pinTracksTwo[tagIdx];
-
-    updateLcd(theMessage);
-    playTrack(theTrackPin);
+    updateLcd(msg);
+    playTrack(tPin);
   }
 
   unsigned long millisLimit = stateReadStartMs + RFID_MAX_WAIT_MS;
@@ -268,9 +282,46 @@ void updateRfidState()
   }
 }
 
+void updateReaderSwitch()
+{
+  stateReaderSwitch = digitalRead(PIN_BTN_SWITCH) ? true : false;
+}
+
+void updateReadLedEffect()
+{
+  if (stateReadStartMs == 0)
+  {
+    ledStrip.clear();
+    ledStrip.show();
+    return;
+  }
+
+  unsigned long now = millis();
+
+  if (now <= stateReadStartMs)
+  {
+    return;
+  }
+
+  const float loopsPerRead = 20.0;
+  const int minBrightness = 50;
+  const int maxBrightness = 250;
+
+  uint16_t msPerLoop = RFID_MAX_WAIT_MS / loopsPerRead;
+  unsigned long msDiff = now - stateReadStartMs;
+  float currLoopRatio = (float)(msDiff % msPerLoop) / msPerLoop;
+  int colorVal = map(currLoopRatio * 100, 0, 100, minBrightness, maxBrightness);
+
+  uint32_t fillColor = Adafruit_NeoPixel::Color(0, 0, colorVal);
+  ledStrip.fill(fillColor);
+  ledStrip.show();
+}
+
 void onTimerState(int idx, int v, int up)
 {
+  updateReaderSwitch();
   updateRfidState();
+  updateReadLedEffect();
 }
 
 void initTimerState()
@@ -295,32 +346,43 @@ void onReadPress(int idx, int v, int up)
   updateLcd(STR_START_READ);
 }
 
-void onSwitchPress(int idx, int v, int up)
-{
-  Serial.println(F("Switch press"));
-  stateReaderActiveIdx = 0;
-}
-
-void onSwitchRelease(int idx, int v, int up)
-{
-  Serial.println(F("Switch release"));
-  stateReaderActiveIdx = 1;
-}
-
 void initButtons()
 {
-  const int debounceDelayMs = 50;
-
-  buttonSwitch
-      .begin(PIN_BTN_SWITCH)
-      .debounce(debounceDelayMs)
-      .onPress(onSwitchPress)
-      .onRelease(onSwitchRelease);
+  pinMode(PIN_BTN_SWITCH, INPUT_PULLUP);
 
   buttonRead
       .begin(PIN_BTN_READ)
-      .debounce(debounceDelayMs)
       .onPress(onReadPress);
+}
+
+void initLed()
+{
+  const uint8_t defaultBrightness = 180;
+
+  ledStrip.begin();
+  ledStrip.setBrightness(defaultBrightness);
+  ledStrip.clear();
+  ledStrip.show();
+}
+
+void startupEffect()
+{
+  const uint8_t numIters = 3;
+  const uint16_t delayMs = 250;
+  const uint32_t color = Adafruit_NeoPixel::Color(250, 250, 250);
+
+  for (uint8_t i = 0; i < numIters; i++)
+  {
+    ledStrip.fill(color);
+    ledStrip.show();
+    delay(delayMs);
+    ledStrip.clear();
+    ledStrip.show();
+    delay(delayMs);
+  }
+
+  ledStrip.clear();
+  ledStrip.show();
 }
 
 void setup()
@@ -333,9 +395,12 @@ void setup()
   initLcd();
   initRfidReaders();
   initButtons();
+  initLed();
   initTimerState();
 
   Serial.println(F(">> Herencias"));
+
+  startupEffect();
 }
 
 void loop()
