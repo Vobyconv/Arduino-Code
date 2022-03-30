@@ -9,7 +9,7 @@
  * LED strip.
  */
 
-const uint16_t LED_NUM = 12;
+const uint16_t LED_NUM = 14;
 const uint8_t LED_PIN = 2;
 
 Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(
@@ -32,7 +32,7 @@ Atm_button buttonRead;
 
 const uint8_t NUM_READERS = 2;
 
-const unsigned long RFID_READ_WAIT_MS = 250;
+const unsigned long RFID_READ_WAIT_MS = 50;
 const unsigned long RFID_MAX_WAIT_MS = 6000;
 
 // RX, TX
@@ -44,23 +44,21 @@ RDM6300 rfidReaders[NUM_READERS] = {rfidOne, rfidTwo};
 const int CODE_UNKNOWN = -1;
 const int CODE_MISSING = -2;
 
-const int NUM_TAGS_ONE = 4;
+const int NUM_TAGS_ONE = 3;
 const int NUM_TAGS_TWO = 1;
 
 String tagsOne[NUM_TAGS_ONE] = {
-    "09008FF3DD00",
-    "09008F3CCC00",
-    "09008F3CCC10",
-    "09008F3CCC20"};
+    "09008FCE2400",
+    "0700110E1F00",
+    "09008F3A4000"};
 
 String tagsTwo[NUM_TAGS_TWO] = {
-    "09008FF3DD50"};
+    "0700117AA200"};
 
 String tagMessagesOne[NUM_TAGS_ONE] = {
     "Tag 1-1",
     "Tag 1-2",
-    "Tag 1-3",
-    "Tag 1-4"};
+    "Tag 1-3"};
 
 String tagMessagesTwo[NUM_TAGS_TWO] = {
     "Tag 2-1"};
@@ -72,7 +70,7 @@ String tagMessagesTwo[NUM_TAGS_TWO] = {
 const uint8_t PIN_AUDIO_RST = 9;
 const uint8_t PIN_AUDIO_ACT = 10;
 
-uint8_t pinTracksOne[NUM_TAGS_ONE] = {11, 12, A0, A1};
+uint8_t pinTracksOne[NUM_TAGS_ONE] = {11, 12, A0};
 uint8_t pinTracksTwo[NUM_TAGS_TWO] = {A2};
 
 /**
@@ -191,6 +189,23 @@ void initRfidReaders()
   }
 }
 
+void clearRfidReaders()
+{
+  const int numIters = 8;
+
+  Serial.println(F("Clearing RFID readers"));
+
+  for (int i = 0; i < numIters; i++)
+  {
+    for (int readerIdx = 0; readerIdx < NUM_READERS; readerIdx++)
+    {
+      rfidReaders[readerIdx].getTagId();
+    }
+  }
+
+  Serial.println(F("Cleared"));
+}
+
 int readRfid(uint8_t readerIdx)
 {
   if (readerIdx >= NUM_READERS)
@@ -208,6 +223,9 @@ int readRfid(uint8_t readerIdx)
   {
     return CODE_MISSING;
   }
+
+  Serial.print(F("Tag ID: "));
+  Serial.println(tagId);
 
   int numTags = readerIdx == 0 ? NUM_TAGS_ONE : NUM_TAGS_TWO;
   String *tagsArr = readerIdx == 0 ? tagsOne : tagsTwo;
@@ -271,7 +289,7 @@ void updateRfidState()
 
   if (tagIdx != CODE_MISSING || isReadTimeout)
   {
-    Serial.println(F("Read flag reset"));
+    Serial.println(F("Read end"));
     stateReadStartMs = 0;
   }
 
@@ -285,13 +303,18 @@ void updateRfidState()
 void updateReaderSwitch()
 {
   stateReaderSwitch = digitalRead(PIN_BTN_SWITCH) ? true : false;
+  ledStrip.fill(0, LED_NUM - 2);
+  // Descomentar estas lineas para encender los leds indicadores de RFID
+  // uint16_t pixelIdx = stateReaderSwitch ? LED_NUM - 1 : LED_NUM - 2;
+  // ledStrip.setPixelColor(pixelIdx, Adafruit_NeoPixel::Color(250, 250, 0));
+  ledStrip.show();
 }
 
 void updateReadLedEffect()
 {
   if (stateReadStartMs == 0)
   {
-    ledStrip.clear();
+    ledStrip.fill(0, 0, LED_NUM - 2);
     ledStrip.show();
     return;
   }
@@ -313,7 +336,7 @@ void updateReadLedEffect()
   int colorVal = map(currLoopRatio * 100, 0, 100, minBrightness, maxBrightness);
 
   uint32_t fillColor = Adafruit_NeoPixel::Color(0, 0, colorVal);
-  ledStrip.fill(fillColor);
+  ledStrip.fill(fillColor, 0, LED_NUM - 2);
   ledStrip.show();
 }
 
@@ -344,6 +367,7 @@ void onReadPress(int idx, int v, int up)
 
   stateReadStartMs = millis();
   updateLcd(STR_START_READ);
+  clearRfidReaders();
 }
 
 void initButtons()
