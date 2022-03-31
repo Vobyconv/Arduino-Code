@@ -9,7 +9,7 @@
  * LED strip.
  */
 
-const uint16_t LED_NUM = 14;
+const uint16_t LED_NUM = 12;
 const uint8_t LED_PIN = 2;
 
 Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(
@@ -56,12 +56,12 @@ String tagsTwo[NUM_TAGS_TWO] = {
     "0700117AA200"};
 
 String tagMessagesOne[NUM_TAGS_ONE] = {
-    "Tag 1-1",
-    "Tag 1-2",
-    "Tag 1-3"};
+    "Moneda S.XIV",
+    "Moneda S.III",
+    "Moneda S.IX"};
 
 String tagMessagesTwo[NUM_TAGS_TWO] = {
-    "Tag 2-1"};
+    "Cabello Rubio"};
 
 /**
  * Audio FX board.
@@ -83,7 +83,7 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 
 const String STR_START_READ = String("Escaneando");
 const String STR_ERROR_NOT_FOUND = String("No encontrado");
-const String STR_ERROR_UNKNOWN = String("Elemento desconocido");
+const String STR_ERROR_UNKNOWN = String("Desconocido");
 
 /**
  * Program state.
