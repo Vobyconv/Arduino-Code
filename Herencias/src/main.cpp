@@ -105,12 +105,16 @@ void updateLcd(String theStr)
 {
   const int lcdCols = 16;
 
-  int from = theStr.length() - lcdCols;
-  from = from < 0 ? 0 : from;
-
   lcd.clear();
+
   lcd.setCursor(0, 0);
-  lcd.print(theStr.substring(from));
+  lcd.print(theStr.substring(0, lcdCols));
+
+  if (theStr.length() > lcdCols)
+  {
+    lcd.setCursor(0, 1);
+    lcd.print(theStr.substring(lcdCols, lcdCols * 2));
+  }
 }
 
 void clearLcd()
