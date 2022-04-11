@@ -151,7 +151,7 @@ const uint8_t NUM_TAGS_MATERIAL = 4;
 
 char tagsGold[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
     "09008EAA163B",
-    "0700110E1F07",
+    "0E004A9F22F9",
     "0700115DB0FB",
     "0700118D47DC"};
 
@@ -163,14 +163,14 @@ char tagsSilver[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
 
 char tagsBronze[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
     "0700118AE77B",
-    "09008F3A40FC",
+    "0E004C5CE4FA",
     "0700113B270A",
     "07001093CE4A"};
 
 char tagsMithril[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
     "09008EFCC7BC",
     "09008F67B554",
-    "070010A0CB7C",
+    "0E004C145A0C",
     "070010A80BB4"};
 
 char tagsOrichalcum[NUM_TAGS_MATERIAL][SIZE_TAG_ID] = {
@@ -1038,6 +1038,10 @@ void initLedCoals()
 
 void initRgbSensors()
 {
+  const unsigned long delayMs = 1000;
+  const uint32_t green = Adafruit_NeoPixel::Color(0, 255, 0);
+  const uint32_t red = Adafruit_NeoPixel::Color(255, 0, 0);
+
   for (int i = 0; i < NUM_RGB_SENSORS; i++)
   {
     Serial.print(F("Initializing RGB sensor #"));
@@ -1046,6 +1050,12 @@ void initRgbSensors()
     if (rgbSensors[i].begin(TCS34725_ADDRESS, &softWires[i]))
     {
       Serial.println(F("RGB Sensor initialized OK"));
+
+      ledRgbSensors[i].fill(green);
+      ledRgbSensors[i].show();
+      delay(delayMs);
+      ledRgbSensors[i].clear();
+      ledRgbSensors[i].show();
     }
     else
     {
@@ -1053,7 +1063,12 @@ void initRgbSensors()
 
       while (true)
       {
-        delay(1000);
+        ledRgbSensors[i].fill(red);
+        ledRgbSensors[i].show();
+        delay(delayMs);
+        ledRgbSensors[i].clear();
+        ledRgbSensors[i].show();
+        delay(delayMs);
       }
     }
   }
@@ -1290,9 +1305,9 @@ void setup(void)
 {
   initSerials();
   initState();
+  initLedRgbSensors();
   initRgbSensors();
   initTimerRgbSensor();
-  initLedRgbSensors();
   initLedCoals();
   initRfidsTagInRange();
   initTimerRfid();
