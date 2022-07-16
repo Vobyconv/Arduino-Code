@@ -114,26 +114,12 @@ void initLeds()
   ledStrip.show();
 }
 
-void onTimerState(int idx, int v, int up)
-{
-}
-
-void initTimerState()
-{
-  timerState
-      .begin(TIMER_STATE_MS)
-      .repeat(-1)
-      .onTimer(onTimerState)
-      .start();
-}
-
 void setup()
 {
   Serial.begin(9600);
 
   initLeds();
   initSensorButtons();
-  initTimerState();
 
   Serial.println(F(">> Lanza Bolas"));
 }
