@@ -32,7 +32,7 @@ const uint32_t COLOR_VICTORY = Adafruit_NeoPixel::Color(0, 250, 0);
 
 unsigned long lastHits[SENSOR_NUM] = {0, 0, 0, 0, 0};
 
-const uint16_t POINTS_LIMIT = 20;
+const uint16_t POINTS_LIMIT = 4;
 
 typedef struct programState
 {
@@ -66,7 +66,7 @@ uint16_t getCurrentActiveLeds()
 
 void showVictoryEffect()
 {
-  const uint8_t numIters = 8;
+  const uint8_t numIters = 12;
   const unsigned long delayMs = 200;
 
   for (uint8_t i = 0; i < numIters; i++)
