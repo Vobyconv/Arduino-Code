@@ -30,19 +30,17 @@ const uint32_t COLOR_VICTORY = Adafruit_NeoPixel::Color(0, 250, 0);
  * Program state.
  */
 
-unsigned long lastHits[SENSOR_NUM] = {0, 0, 0, 0, 0};
-
 const uint16_t POINTS_LIMIT = 4;
 
 typedef struct programState
 {
   uint16_t totalPoints;
-  unsigned long *lastHits;
+  unsigned long lastHit;
 } ProgramState;
 
 ProgramState progState = {
     .totalPoints = 0,
-    .lastHits = lastHits};
+    .lastHit = 0};
 
 uint16_t getCurrentActiveLeds()
 {
@@ -102,13 +100,13 @@ void updateLeds()
 
 bool isSensorEnabled(int idx)
 {
-  if (progState.lastHits[idx] == 0)
+  if (progState.lastHit == 0)
   {
     return true;
   }
 
   unsigned long nowMs = millis();
-  unsigned long diffMs = nowMs - progState.lastHits[idx];
+  unsigned long diffMs = nowMs - progState.lastHit;
 
   if (diffMs > DEBOUNCE_MS)
   {
@@ -128,7 +126,7 @@ void onSensorPress(int idx, int v, int up)
   Serial.print(F("Sensor: "));
   Serial.println(idx);
 
-  progState.lastHits[idx] = millis();
+  progState.lastHit = millis();
   progState.totalPoints++;
 
   if (progState.totalPoints >= POINTS_LIMIT)
