@@ -10,7 +10,7 @@ const uint8_t SENSOR_NUM = 5;
 const uint8_t SENSOR_PINS[SENSOR_NUM] = {
     2, 3, 4, 5, 6};
 
-Atm_button sensorButtons[SENSOR_NUM];
+Atm_digital sensorDigitals[SENSOR_NUM];
 
 /**
  * LEDs.
@@ -96,13 +96,17 @@ void onSensorPress(int idx, int v, int up)
   updateLeds();
 }
 
-void initSensorButtons()
+void initSensorDigitals()
 {
+  const int minDurationMs = 20;
+  const bool activeLow = false;
+  const bool pullUp = false;
+
   for (int i = 0; i < SENSOR_NUM; i++)
   {
-    sensorButtons[i]
-        .begin(SENSOR_PINS[i])
-        .onPress(onSensorPress, i);
+    sensorDigitals[i]
+        .begin(SENSOR_PINS[i], minDurationMs, activeLow, pullUp)
+        .onChange(HIGH, onSensorPress, i);
   }
 }
 
@@ -119,7 +123,7 @@ void setup()
   Serial.begin(9600);
 
   initLeds();
-  initSensorButtons();
+  initSensorDigitals();
 
   Serial.println(F(">> Lanza Bolas"));
 }
