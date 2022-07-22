@@ -5,8 +5,8 @@
  * Proximity sensors.
  */
 
-const uint8_t SENSOR_NUM = 5;
-const uint8_t SENSOR_PINS[SENSOR_NUM] = {2, 3, 4, 5, 6};
+const uint8_t SENSOR_NUM = 4;
+const uint8_t SENSOR_PINS[SENSOR_NUM] = {2, 3, 4, 5};
 
 const unsigned long DEBOUNCE_MS = 500;
 
@@ -17,7 +17,7 @@ Atm_digital sensorDigitals[SENSOR_NUM];
  */
 
 const uint8_t LED_BRIGHTNESS = 60;
-const uint16_t LED_NUM = 11;
+const uint16_t LED_NUM = 120;
 const int16_t LED_PIN = 7;
 
 Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(
