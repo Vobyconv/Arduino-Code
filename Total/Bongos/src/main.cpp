@@ -9,8 +9,14 @@
 
 const uint8_t NUM_BUTTONS = 3;
 const uint8_t PIN_BUTTONS[NUM_BUTTONS] = {A0, A1, A2};
+const uint8_t PIN_BUTTON_LEDS[NUM_BUTTONS] = {A3, A4, A5};
 
 Atm_button buttons[NUM_BUTTONS];
+Atm_led buttonLeds[NUM_BUTTONS];
+
+const uint32_t LED_DURATION_MS = 150;
+const uint32_t LED_DURATION_PAUSE_MS = 50;
+const uint16_t LED_REPEAT_COUNT = 1;
 
 /**
  * Audio FX
@@ -159,6 +165,13 @@ void initButtons()
         .begin(PIN_BUTTONS[i])
         .debounce(debounceDelayMs)
         .onPress(onButtonPress, i);
+
+    buttonLeds[i]
+        .begin(PIN_BUTTON_LEDS[i])
+        .blink(LED_DURATION_MS, LED_DURATION_PAUSE_MS, LED_REPEAT_COUNT);
+
+    buttonLeds[i]
+        .trigger(Atm_led::EVT_OFF);
   }
 }
 
@@ -196,6 +209,31 @@ void initTimerGeneral()
       .start();
 }
 
+void startupEffect()
+{
+  const uint8_t numIters = 5;
+  const uint16_t delayMs = 200;
+  const uint32_t color = Adafruit_NeoPixel::Color(200, 200, 200);
+
+  for (uint8_t i = 0; i < numIters; i++)
+  {
+    ledProgress.fill(color);
+    ledProgress.show();
+    delay(delayMs);
+    ledProgress.clear();
+    ledProgress.show();
+    delay(delayMs);
+  }
+
+  ledProgress.clear();
+  ledProgress.show();
+
+  for (uint8_t i = 0; i < NUM_BUTTONS; i++)
+  {
+    buttonLeds[i].trigger(Atm_led::EVT_BLINK);
+  }
+}
+
 void setup()
 {
   Serial.begin(9600);
@@ -204,6 +242,7 @@ void setup()
   initLeds();
   initButtons();
   initTimerGeneral();
+  startupEffect();
 
   Serial.println(F(">> Bongos de Simon"));
 }
