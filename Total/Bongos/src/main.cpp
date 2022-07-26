@@ -19,6 +19,14 @@ const uint32_t LED_DURATION_PAUSE_MS = 50;
 const uint16_t LED_REPEAT_COUNT = 1;
 
 /**
+ * General-purpose timer
+ */
+
+const uint32_t TIMER_GENERAL_MS = 50;
+
+Atm_timer timerGeneral;
+
+/**
  * Audio FX
  */
 
@@ -42,7 +50,7 @@ typedef struct audioRequest
 
 CircularBuffer<AudioRequest, AUDIO_BUF_SIZE> audioRequestsQueue;
 
-const unsigned long MAX_AUDIO_DIFF_MILLIS = 200;
+const unsigned long MAX_AUDIO_DIFF_MILLIS = TIMER_GENERAL_MS * 3;
 
 /**
  * LED strips
@@ -67,12 +75,45 @@ Adafruit_NeoPixel ledClick = Adafruit_NeoPixel(
 const uint8_t LED_BRIGHTNESS = 150;
 
 /**
- * General-purpose timer
+ * Game phases.
  */
 
-const uint32_t TIMER_GENERAL_MS = 50;
+const uint8_t NUM_PHASES = 2;
+const uint8_t PHASE_SIZE = 6;
 
-Atm_timer timerGeneral;
+// Array values must be in range [0, NUM_BUTTONS)
+
+const uint8_t GAME_SOLUTION[NUM_PHASES][PHASE_SIZE] = {
+    {0, 1, 2, 0, 1, 2},
+    {1, 2, 0, 1, 2, 0}};
+
+const unsigned long HINT_STEP_MS = 500;
+const unsigned long GAME_IDLE_MS = 5000;
+const unsigned long HINT_LOOP_REPEAT_MS = 5000;
+
+/**
+ * Program state
+ */
+
+const uint16_t BUTTONS_BUF_SIZE = PHASE_SIZE;
+
+CircularBuffer<uint8_t, BUTTONS_BUF_SIZE> buttonsBuf;
+
+typedef struct programState
+{
+  unsigned long lastPressMillis;
+  uint8_t currentPhase;
+  uint8_t currentHintStep;
+  unsigned long lastHintMillis;
+  unsigned long lastHintLoopEndMillis;
+} ProgramState;
+
+ProgramState progState = {
+    .lastPressMillis = 0,
+    .currentPhase = 0,
+    .currentHintStep = 0,
+    .lastHintMillis = 0,
+    .lastHintLoopEndMillis = 0};
 
 bool isTrackPlaying()
 {
@@ -149,10 +190,79 @@ void initLeds()
   ledClick.show();
 }
 
+void clearHintLoopState()
+{
+  progState.currentHintStep = 0;
+  progState.lastHintMillis = 0;
+  progState.lastHintLoopEndMillis = 0;
+}
+
+bool isHintEnabled()
+{
+  unsigned long now = millis();
+
+  if ((now - progState.lastPressMillis) < GAME_IDLE_MS)
+  {
+    return false;
+  }
+
+  if ((now - progState.lastHintMillis) < HINT_STEP_MS)
+  {
+    return false;
+  }
+
+  if ((now - progState.lastHintLoopEndMillis) < HINT_LOOP_REPEAT_MS)
+  {
+    return false;
+  }
+
+  return true;
+}
+
+void showHint()
+{
+  if (!isHintEnabled())
+  {
+    clearHintLoopState();
+    return;
+  }
+
+  uint8_t currBtnIdx = GAME_SOLUTION[progState.currentPhase][progState.currentHintStep];
+
+  if (currBtnIdx >= NUM_BUTTONS)
+  {
+    Serial.println(F("WARNING: Unexpected button index"));
+    return;
+  }
+
+  unsigned long now = millis();
+
+  progState.lastHintMillis = now;
+
+  if (progState.currentHintStep < (PHASE_SIZE - 1))
+  {
+    progState.currentHintStep++;
+  }
+  else
+  {
+    progState.currentHintStep = 0;
+    progState.lastHintLoopEndMillis = now;
+  }
+
+  buttonLeds[currBtnIdx].trigger(Atm_led::EVT_BLINK);
+  enqueueTrack(PIN_AUDIO_TRACK_BUTTONS[currBtnIdx]);
+}
+
 void onButtonPress(int idx, int v, int up)
 {
   Serial.print(F("Button: "));
   Serial.println(idx);
+
+  clearHintLoopState();
+  progState.lastPressMillis = millis();
+  buttonLeds[idx].trigger(Atm_led::EVT_BLINK);
+  enqueueTrack(PIN_AUDIO_TRACK_BUTTONS[idx]);
+  buttonsBuf.push(idx);
 }
 
 void initButtons()
@@ -197,6 +307,7 @@ void processAudioQueue()
 
 void onTimerGeneral(int idx, int v, int up)
 {
+  showHint();
   processAudioQueue();
 }
 
