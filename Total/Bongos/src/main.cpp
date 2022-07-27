@@ -190,13 +190,6 @@ void initLeds()
   ledClick.show();
 }
 
-void clearHintLoopState()
-{
-  progState.currentHintStep = 0;
-  progState.lastHintMillis = 0;
-  progState.lastHintLoopEndMillis = 0;
-}
-
 bool isHintEnabled()
 {
   unsigned long now = millis();
@@ -223,7 +216,6 @@ void showHint()
 {
   if (!isHintEnabled())
   {
-    clearHintLoopState();
     return;
   }
 
@@ -251,6 +243,13 @@ void showHint()
 
   buttonLeds[currBtnIdx].trigger(Atm_led::EVT_BLINK);
   enqueueTrack(PIN_AUDIO_TRACK_BUTTONS[currBtnIdx]);
+}
+
+void clearHintLoopState()
+{
+  progState.currentHintStep = 0;
+  progState.lastHintMillis = 0;
+  progState.lastHintLoopEndMillis = 0;
 }
 
 void onButtonPress(int idx, int v, int up)
