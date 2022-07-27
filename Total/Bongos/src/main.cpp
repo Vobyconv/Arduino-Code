@@ -14,15 +14,15 @@ const uint8_t PIN_BUTTON_LEDS[NUM_BUTTONS] = {A3, A4, A5};
 Atm_button buttons[NUM_BUTTONS];
 Atm_led buttonLeds[NUM_BUTTONS];
 
-const uint32_t LED_DURATION_MS = 150;
-const uint32_t LED_DURATION_PAUSE_MS = 50;
+const uint32_t LED_DURATION_MS = 100;
+const uint32_t LED_DURATION_PAUSE_MS = 20;
 const uint16_t LED_REPEAT_COUNT = 1;
 
 /**
  * General-purpose timer
  */
 
-const uint32_t TIMER_GENERAL_MS = 100;
+const uint32_t TIMER_GENERAL_MS = 50;
 
 Atm_timer timerGeneral;
 
@@ -51,6 +51,7 @@ typedef struct audioRequest
 CircularBuffer<AudioRequest, AUDIO_BUF_SIZE> audioRequestsQueue;
 
 const unsigned long MAX_AUDIO_DIFF_MILLIS = 350;
+const unsigned long CLEAR_AUDIO_WAIT_MILLIS = 100;
 
 /**
  * LED strips
@@ -106,6 +107,7 @@ typedef struct programState
   uint8_t currentHintStep;
   unsigned long lastHintMillis;
   unsigned long lastHintLoopEndMillis;
+  unsigned long lastPlayMillis;
 } ProgramState;
 
 ProgramState progState = {
@@ -113,7 +115,8 @@ ProgramState progState = {
     .currentPhase = 0,
     .currentHintStep = 0,
     .lastHintMillis = 0,
-    .lastHintLoopEndMillis = 0};
+    .lastHintLoopEndMillis = 0,
+    .lastPlayMillis = 0};
 
 uint8_t getPhaseSize(int phaseIdx)
 {
@@ -155,6 +158,8 @@ void playTrack(uint8_t trackPin)
 
   Serial.print(F("Playing pin: "));
   Serial.println(trackPin);
+
+  progState.lastPlayMillis = millis();
 
   digitalWrite(trackPin, LOW);
   pinMode(trackPin, OUTPUT);
@@ -329,7 +334,12 @@ void initButtons()
 
 void processAudioQueue()
 {
-  clearAudioPins();
+  unsigned long diffLastPlayMillis = millis() - progState.lastPlayMillis;
+
+  if (diffLastPlayMillis >= CLEAR_AUDIO_WAIT_MILLIS)
+  {
+    clearAudioPins();
+  }
 
   if (audioRequestsQueue.isEmpty() || isTrackPlaying())
   {
