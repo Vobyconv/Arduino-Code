@@ -22,7 +22,7 @@ const uint16_t LED_REPEAT_COUNT = 1;
  * General-purpose timer
  */
 
-const uint32_t TIMER_GENERAL_MS = 50;
+const uint32_t TIMER_GENERAL_MS = 100;
 
 Atm_timer timerGeneral;
 
@@ -50,7 +50,7 @@ typedef struct audioRequest
 
 CircularBuffer<AudioRequest, AUDIO_BUF_SIZE> audioRequestsQueue;
 
-const unsigned long MAX_AUDIO_DIFF_MILLIS = TIMER_GENERAL_MS * 3;
+const unsigned long MAX_AUDIO_DIFF_MILLIS = 350;
 
 /**
  * LED strips
@@ -87,9 +87,9 @@ const uint8_t GAME_SOLUTION[NUM_PHASES][PHASE_SIZE] = {
     {0, 1, 2, 0, 1, 2},
     {1, 2, 0, 1, 2, 0}};
 
-const unsigned long HINT_STEP_MS = 500;
-const unsigned long GAME_IDLE_MS = 5000;
-const unsigned long HINT_LOOP_REPEAT_MS = 5000;
+const unsigned long HINT_STEP_MS = 1200;
+const unsigned long GAME_IDLE_MS = 6000;
+const unsigned long HINT_LOOP_REPEAT_MS = 6000;
 
 /**
  * Program state
@@ -128,8 +128,24 @@ void playTrack(uint8_t trackPin)
     return;
   }
 
+  Serial.print(F("Playing pin: "));
+  Serial.println(trackPin);
+
   digitalWrite(trackPin, LOW);
   pinMode(trackPin, OUTPUT);
+}
+
+void clearAudioPins()
+{
+  for (int i = 0; i < NUM_BUTTONS; i++)
+  {
+    pinMode(PIN_AUDIO_TRACK_BUTTONS[i], INPUT);
+  }
+
+  pinMode(PIN_AUDIO_TRACK_OK, INPUT);
+  pinMode(PIN_AUDIO_TRACK_FAIL, INPUT);
+  pinMode(PIN_AUDIO_TRACK_VICTORY, INPUT);
+  pinMode(PIN_AUDIO_TRACK_PHASE, INPUT);
 }
 
 void initAudioPins()
@@ -286,6 +302,8 @@ void initButtons()
 
 void processAudioQueue()
 {
+  clearAudioPins();
+
   if (audioRequestsQueue.isEmpty() || isTrackPlaying())
   {
     return;
@@ -300,6 +318,12 @@ void processAudioQueue()
     {
       playTrack(audioReq.trackPin);
       break;
+    }
+    else
+    {
+      Serial.print(F("Discarded audio: "));
+      Serial.print(diffMillis);
+      Serial.println(F(" ms"));
     }
   }
 }
