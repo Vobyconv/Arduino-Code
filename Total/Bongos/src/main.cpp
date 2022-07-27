@@ -96,9 +96,7 @@ const unsigned long HINT_LOOP_REPEAT_MS = 6000;
  * Program state
  */
 
-const uint16_t BUTTONS_BUF_SIZE = PHASE_SIZE;
-
-CircularBuffer<uint8_t, BUTTONS_BUF_SIZE> buttonsBuf;
+CircularBuffer<uint8_t, PHASE_SIZE> buttonsBuf;
 
 typedef struct programState
 {
@@ -141,6 +139,43 @@ uint8_t getPhaseSize(int phaseIdx)
   }
 
   return ret;
+}
+
+uint16_t getCurrentMatchSize()
+{
+  if (buttonsBuf.capacity != PHASE_SIZE)
+  {
+    Serial.println(F("WARNING: Unexpected buffer capacity"));
+  }
+
+  uint8_t phaseSize = getPhaseSize(progState.currentPhase);
+  int16_t numSubsets = max(buttonsBuf.size() - phaseSize + 1, 1);
+  uint16_t bestMatch = 0;
+
+  for (uint8_t subsetIdx = 0; subsetIdx < numSubsets; subsetIdx++)
+  {
+    uint16_t currMatch = 0;
+    uint8_t pivotLimit = min(buttonsBuf.size(), phaseSize);
+
+    for (uint8_t pivotIdx = 0; pivotIdx < pivotLimit; pivotIdx++)
+    {
+      if (buttonsBuf[pivotIdx + subsetIdx] == GAME_SOLUTION[progState.currentPhase][pivotIdx])
+      {
+        currMatch++;
+      }
+      else
+      {
+        break;
+      }
+    }
+
+    if (currMatch > bestMatch)
+    {
+      bestMatch = currMatch;
+    }
+  }
+
+  return bestMatch;
 }
 
 bool isTrackPlaying()
@@ -264,6 +299,8 @@ void showHint()
   {
     return;
   }
+
+  buttonsBuf.clear();
 
   uint8_t currBtnIdx = GAME_SOLUTION[progState.currentPhase][progState.currentHintStep];
 
