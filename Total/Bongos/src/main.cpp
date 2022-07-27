@@ -79,13 +79,13 @@ const uint8_t LED_BRIGHTNESS = 150;
  */
 
 const uint8_t NUM_PHASES = 2;
-const uint8_t PHASE_SIZE = 6;
+const uint8_t PHASE_SIZE = 9;
 
-// Array values must be in range [0, NUM_BUTTONS)
+// Array values must be in range [-1, NUM_BUTTONS)
 
-const uint8_t GAME_SOLUTION[NUM_PHASES][PHASE_SIZE] = {
-    {0, 1, 2, 0, 1, 2},
-    {1, 2, 0, 1, 2, 0}};
+const int GAME_SOLUTION[NUM_PHASES][PHASE_SIZE] = {
+    {0, 1, 2, 0, 1, -1, -1, -1, -1},
+    {1, 2, 0, 1, 2, 0, 1, 2, 0}};
 
 const unsigned long HINT_STEP_MS = 1200;
 const unsigned long GAME_IDLE_MS = 6000;
@@ -114,6 +114,31 @@ ProgramState progState = {
     .currentHintStep = 0,
     .lastHintMillis = 0,
     .lastHintLoopEndMillis = 0};
+
+uint8_t getPhaseSize(int phaseIdx)
+{
+  if (phaseIdx >= NUM_PHASES)
+  {
+    Serial.println(F("WARNING: Unexpected phase index"));
+    return 0;
+  }
+
+  uint8_t ret = 0;
+
+  for (int i = 0; i < PHASE_SIZE; i++)
+  {
+    if (GAME_SOLUTION[phaseIdx][i] >= 0)
+    {
+      ret++;
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  return ret;
+}
 
 bool isTrackPlaying()
 {
@@ -247,7 +272,9 @@ void showHint()
 
   progState.lastHintMillis = now;
 
-  if (progState.currentHintStep < (PHASE_SIZE - 1))
+  uint8_t phaseSize = getPhaseSize(progState.currentPhase);
+
+  if (progState.currentHintStep < (phaseSize - 1))
   {
     progState.currentHintStep++;
   }
