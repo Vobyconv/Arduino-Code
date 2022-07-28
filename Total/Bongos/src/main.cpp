@@ -67,7 +67,7 @@ const unsigned long CLEAR_AUDIO_WAIT_MILLIS = 100;
 const uint16_t LED_PROGRESS_NUM = 150;
 const uint8_t LED_PROGRESS_PIN = 11;
 
-const uint16_t LED_EFFECTS_NUM = 80;
+const uint16_t LED_EFFECTS_NUM = 70;
 const uint8_t LED_EFFECTS_PIN = 12;
 
 Adafruit_NeoPixel ledProgress = Adafruit_NeoPixel(
@@ -197,7 +197,7 @@ bool isValidButtonsBuf()
   return getCurrentMatchSize() == buttonsBuf.size();
 }
 
-bool isValidPhase()
+bool isPhaseComplete()
 {
   return isValidButtonsBuf() &&
          buttonsBuf.size() == getPhaseSize(progState.currentPhase);
@@ -476,7 +476,8 @@ void runSnakeEffect(
     unsigned long totalMs,
     uint16_t snakeSize,
     uint32_t color,
-    unsigned long &stateStartMillis)
+    unsigned long &stateStartMillis,
+    bool reverse = false)
 {
   unsigned long now = millis();
   unsigned long diffStartMs = now - stateStartMillis;
@@ -493,8 +494,10 @@ void runSnakeEffect(
   uint16_t msPerStep = floor(((float)totalMs) / snakeSteps);
   uint16_t currStep = round(((float)diffStartMs) / msPerStep);
 
+  uint16_t first = reverse ? max(ledEffects.numPixels() - snakeSize - currStep, 0) : currStep;
+
   ledEffects.clear();
-  ledEffects.fill(color, currStep, snakeSize);
+  ledEffects.fill(color, first, snakeSize);
   ledEffects.show();
 }
 
@@ -508,8 +511,9 @@ void runEffectFail()
   const unsigned long totalMs = 800;
   const uint16_t snakeSize = 10;
   const uint32_t color = Adafruit_NeoPixel::Color(220, 0, 0);
+  const bool reverse = true;
 
-  runSnakeEffect(totalMs, snakeSize, color, progState.effectFailStartMillis);
+  runSnakeEffect(totalMs, snakeSize, color, progState.effectFailStartMillis, reverse);
 }
 
 void runEffectOk()
@@ -522,8 +526,9 @@ void runEffectOk()
   const unsigned long totalMs = 800;
   const uint16_t snakeSize = 10;
   const uint32_t color = Adafruit_NeoPixel::Color(0, 220, 0);
+  const bool reverse = false;
 
-  runSnakeEffect(totalMs, snakeSize, color, progState.effectOkStartMillis);
+  runSnakeEffect(totalMs, snakeSize, color, progState.effectOkStartMillis, reverse);
 }
 
 void updateEffectsLed()
@@ -551,7 +556,7 @@ void updateEffectsLed()
 
 void updateProgressState()
 {
-  bool validPhase = isValidPhase();
+  bool validPhase = isPhaseComplete();
 
   if (validPhase && progState.currentPhase >= (NUM_PHASES - 1))
   {
