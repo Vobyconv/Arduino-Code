@@ -35,9 +35,16 @@ const uint8_t PIN_AUDIO_RST = 3;
 
 const uint8_t PIN_AUDIO_TRACK_BUTTONS[NUM_BUTTONS] = {4, 5, 6};
 
+// On phase consolidation
 const uint8_t PIN_AUDIO_TRACK_OK = 7;
+
+// On button press fail
 const uint8_t PIN_AUDIO_TRACK_FAIL = 8;
+
+// On game victory
 const uint8_t PIN_AUDIO_TRACK_VICTORY = 9;
+
+// On new phase start
 const uint8_t PIN_AUDIO_TRACK_PHASE = 10;
 
 const uint16_t AUDIO_BUF_SIZE = 2;
@@ -57,20 +64,20 @@ const unsigned long CLEAR_AUDIO_WAIT_MILLIS = 100;
  * LED strips
  */
 
-const uint16_t LED_PROGRESS_NUM = 30;
+const uint16_t LED_PROGRESS_NUM = 150;
 const uint8_t LED_PROGRESS_PIN = 11;
 
-const uint16_t LED_CLICK_NUM = 30;
-const uint8_t LED_CLICK_PIN = 12;
+const uint16_t LED_EFFECTS_NUM = 80;
+const uint8_t LED_EFFECTS_PIN = 12;
 
 Adafruit_NeoPixel ledProgress = Adafruit_NeoPixel(
     LED_PROGRESS_NUM,
     LED_PROGRESS_PIN,
     NEO_GRB + NEO_KHZ800);
 
-Adafruit_NeoPixel ledClick = Adafruit_NeoPixel(
-    LED_CLICK_NUM,
-    LED_CLICK_PIN,
+Adafruit_NeoPixel ledEffects = Adafruit_NeoPixel(
+    LED_EFFECTS_NUM,
+    LED_EFFECTS_PIN,
     NEO_GRB + NEO_KHZ800);
 
 const uint8_t LED_BRIGHTNESS = 150;
@@ -106,15 +113,33 @@ typedef struct programState
   unsigned long lastHintMillis;
   unsigned long lastHintLoopEndMillis;
   unsigned long lastPlayMillis;
+  unsigned long effectFailStartMillis;
+  unsigned long effectOkStartMillis;
 } ProgramState;
 
-ProgramState progState = {
-    .lastPressMillis = 0,
-    .currentPhase = 0,
-    .currentHintStep = 0,
-    .lastHintMillis = 0,
-    .lastHintLoopEndMillis = 0,
-    .lastPlayMillis = 0};
+ProgramState progState;
+
+void initState()
+{
+  progState.lastPressMillis = 0;
+  progState.currentPhase = 0;
+  progState.currentHintStep = 0;
+  progState.lastHintMillis = 0;
+  progState.lastHintLoopEndMillis = 0;
+  progState.lastPlayMillis = 0;
+  progState.effectFailStartMillis = 0;
+  progState.effectOkStartMillis = 0;
+}
+
+void setEffectFail()
+{
+  progState.effectFailStartMillis = millis();
+}
+
+void setEffectOk()
+{
+  progState.effectOkStartMillis = millis();
+}
 
 uint8_t getPhaseSize(int phaseIdx)
 {
@@ -141,7 +166,7 @@ uint8_t getPhaseSize(int phaseIdx)
   return ret;
 }
 
-uint16_t getCurrentMatchSize()
+uint8_t getCurrentMatchSize()
 {
   if (buttonsBuf.capacity != PHASE_SIZE)
   {
@@ -149,33 +174,33 @@ uint16_t getCurrentMatchSize()
   }
 
   uint8_t phaseSize = getPhaseSize(progState.currentPhase);
-  int16_t numSubsets = max(buttonsBuf.size() - phaseSize + 1, 1);
-  uint16_t bestMatch = 0;
+  uint8_t pivotLimit = min(buttonsBuf.size(), phaseSize);
+  uint8_t matchSize = 0;
 
-  for (uint8_t subsetIdx = 0; subsetIdx < numSubsets; subsetIdx++)
+  for (uint8_t idx = 0; idx < pivotLimit; idx++)
   {
-    uint16_t currMatch = 0;
-    uint8_t pivotLimit = min(buttonsBuf.size(), phaseSize);
-
-    for (uint8_t pivotIdx = 0; pivotIdx < pivotLimit; pivotIdx++)
+    if (buttonsBuf[idx] == GAME_SOLUTION[progState.currentPhase][idx])
     {
-      if (buttonsBuf[pivotIdx + subsetIdx] == GAME_SOLUTION[progState.currentPhase][pivotIdx])
-      {
-        currMatch++;
-      }
-      else
-      {
-        break;
-      }
+      matchSize++;
     }
-
-    if (currMatch > bestMatch)
+    else
     {
-      bestMatch = currMatch;
+      break;
     }
   }
 
-  return bestMatch;
+  return matchSize;
+}
+
+bool isValidButtonsBuf()
+{
+  return getCurrentMatchSize() == buttonsBuf.size();
+}
+
+bool isValidPhase()
+{
+  return isValidButtonsBuf() &&
+         buttonsBuf.size() == getPhaseSize(progState.currentPhase);
 }
 
 bool isTrackPlaying()
@@ -265,10 +290,10 @@ void initLeds()
   ledProgress.clear();
   ledProgress.show();
 
-  ledClick.begin();
-  ledClick.setBrightness(LED_BRIGHTNESS);
-  ledClick.clear();
-  ledClick.show();
+  ledEffects.begin();
+  ledEffects.setBrightness(LED_BRIGHTNESS);
+  ledEffects.clear();
+  ledEffects.show();
 }
 
 bool isHintEnabled()
@@ -345,8 +370,18 @@ void onButtonPress(int idx, int v, int up)
   clearHintLoopState();
   progState.lastPressMillis = millis();
   buttonLeds[idx].trigger(Atm_led::EVT_BLINK);
-  enqueueTrack(PIN_AUDIO_TRACK_BUTTONS[idx]);
   buttonsBuf.push(idx);
+
+  if (isValidButtonsBuf())
+  {
+    enqueueTrack(PIN_AUDIO_TRACK_BUTTONS[idx]);
+  }
+  else
+  {
+    buttonsBuf.clear();
+    setEffectFail();
+    enqueueTrack(PIN_AUDIO_TRACK_FAIL);
+  }
 }
 
 void initButtons()
@@ -402,10 +437,142 @@ void processAudioQueue()
   }
 }
 
+void updateProgressLed()
+{
+  uint16_t totalSteps = 0;
+
+  for (int phaseIdx = 0; phaseIdx < NUM_PHASES; phaseIdx++)
+  {
+    totalSteps += getPhaseSize(phaseIdx);
+  }
+
+  uint16_t ledsPerStep = floor(((float)ledProgress.numPixels()) / totalSteps);
+
+  uint16_t currSteps = 0;
+
+  for (int phaseIdx = 0; phaseIdx < progState.currentPhase; phaseIdx++)
+  {
+    currSteps += getPhaseSize(phaseIdx);
+  }
+
+  uint8_t matchSize = getCurrentMatchSize();
+
+  currSteps += matchSize;
+
+  uint16_t fillCount = currSteps * ledsPerStep;
+  const uint32_t progressColor = Adafruit_NeoPixel::Color(0, 200, 0);
+
+  ledProgress.clear();
+
+  if (fillCount > 0)
+  {
+    ledProgress.fill(progressColor, 0, fillCount);
+  }
+
+  ledProgress.show();
+}
+
+void runSnakeEffect(
+    unsigned long totalMs,
+    uint16_t snakeSize,
+    uint32_t color,
+    unsigned long &stateStartMillis)
+{
+  unsigned long now = millis();
+  unsigned long diffStartMs = now - stateStartMillis;
+
+  if (diffStartMs >= totalMs || snakeSize > ledEffects.numPixels())
+  {
+    stateStartMillis = 0;
+    ledEffects.clear();
+    ledEffects.show();
+    return;
+  }
+
+  uint16_t snakeSteps = ledEffects.numPixels() - snakeSize;
+  uint16_t msPerStep = floor(((float)totalMs) / snakeSteps);
+  uint16_t currStep = round(((float)diffStartMs) / msPerStep);
+
+  ledEffects.clear();
+  ledEffects.fill(color, currStep, snakeSize);
+  ledEffects.show();
+}
+
+void runEffectFail()
+{
+  if (progState.effectFailStartMillis == 0)
+  {
+    return;
+  }
+
+  const unsigned long totalMs = 800;
+  const uint16_t snakeSize = 10;
+  const uint32_t color = Adafruit_NeoPixel::Color(220, 0, 0);
+
+  runSnakeEffect(totalMs, snakeSize, color, progState.effectFailStartMillis);
+}
+
+void runEffectOk()
+{
+  if (progState.effectOkStartMillis == 0)
+  {
+    return;
+  }
+
+  const unsigned long totalMs = 800;
+  const uint16_t snakeSize = 10;
+  const uint32_t color = Adafruit_NeoPixel::Color(0, 220, 0);
+
+  runSnakeEffect(totalMs, snakeSize, color, progState.effectOkStartMillis);
+}
+
+void updateEffectsLed()
+{
+  if (progState.effectFailStartMillis > 0 && progState.effectOkStartMillis > 0)
+  {
+    // Phase consolidation effect takes precedence
+    progState.effectFailStartMillis = 0;
+  }
+
+  if (progState.effectFailStartMillis > 0)
+  {
+    runEffectFail();
+  }
+  else if (progState.effectOkStartMillis > 0)
+  {
+    runEffectOk();
+  }
+  else
+  {
+    ledEffects.clear();
+    ledEffects.show();
+  }
+}
+
+void updateProgressState()
+{
+  bool validPhase = isValidPhase();
+
+  if (validPhase && progState.currentPhase >= (NUM_PHASES - 1))
+  {
+    initState();
+    enqueueTrack(PIN_AUDIO_TRACK_VICTORY);
+  }
+  else if (validPhase)
+  {
+    setEffectOk();
+    progState.currentPhase++;
+    clearHintLoopState();
+  }
+}
+
 void onTimerGeneral(int idx, int v, int up)
 {
   showHint();
   processAudioQueue();
+  updateProgressState();
+  updateProgressLed();
+  updateEffectsLed();
 }
 
 void initTimerGeneral()
@@ -446,6 +613,7 @@ void setup()
 {
   Serial.begin(9600);
 
+  initState();
   initAudio();
   initLeds();
   initButtons();
