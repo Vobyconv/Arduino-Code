@@ -372,15 +372,30 @@ void onButtonPress(int idx, int v, int up)
   buttonLeds[idx].trigger(Atm_led::EVT_BLINK);
   buttonsBuf.push(idx);
 
-  if (isValidButtonsBuf())
+  bool validBuf = isValidButtonsBuf();
+  bool phaseComplete = isPhaseComplete();
+  bool lastPhase = progState.currentPhase >= (NUM_PHASES - 1);
+
+  if (!phaseComplete && validBuf)
   {
     enqueueTrack(PIN_AUDIO_TRACK_BUTTONS[idx]);
   }
-  else
+  else if (!phaseComplete && !validBuf)
   {
     buttonsBuf.clear();
     setEffectFail();
     enqueueTrack(PIN_AUDIO_TRACK_FAIL);
+  }
+  else if (phaseComplete && lastPhase)
+  {
+    initState();
+    enqueueTrack(PIN_AUDIO_TRACK_VICTORY);
+  }
+  else if (phaseComplete)
+  {
+    setEffectOk();
+    progState.currentPhase++;
+    clearHintLoopState();
   }
 }
 
@@ -554,28 +569,10 @@ void updateEffectsLed()
   }
 }
 
-void updateProgressState()
-{
-  bool validPhase = isPhaseComplete();
-
-  if (validPhase && progState.currentPhase >= (NUM_PHASES - 1))
-  {
-    initState();
-    enqueueTrack(PIN_AUDIO_TRACK_VICTORY);
-  }
-  else if (validPhase)
-  {
-    setEffectOk();
-    progState.currentPhase++;
-    clearHintLoopState();
-  }
-}
-
 void onTimerGeneral(int idx, int v, int up)
 {
   showHint();
   processAudioQueue();
-  updateProgressState();
   updateProgressLed();
   updateEffectsLed();
 }
