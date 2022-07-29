@@ -74,6 +74,8 @@ Adafruit_NeoPixel ledEffects = Adafruit_NeoPixel(
 
 const uint8_t LED_BRIGHTNESS = 150;
 
+const uint32_t COLOR_PROGRESS = Adafruit_NeoPixel::Color(0, 200, 0);
+
 /**
  * Game phases.
  */
@@ -472,9 +474,10 @@ void onButtonPress(int idx, int v, int up)
   }
   else if (phaseComplete)
   {
-    setEffectOk();
-    progState.currentPhase++;
     buttonsBuf.clear();
+    setEffectOk();
+    enqueueTrack(PIN_AUDIO_TRACK_PHASE);
+    progState.currentPhase++;
     clearHintLoopState();
   }
 }
@@ -556,13 +559,12 @@ void updateProgressLed()
   currSteps += matchSize;
 
   uint16_t fillCount = currSteps * ledsPerStep;
-  const uint32_t progressColor = Adafruit_NeoPixel::Color(0, 200, 0);
 
   ledProgress.clear();
 
   if (fillCount > 0)
   {
-    ledProgress.fill(progressColor, 0, fillCount);
+    ledProgress.fill(COLOR_PROGRESS, 0, fillCount);
   }
 
   ledProgress.show();
