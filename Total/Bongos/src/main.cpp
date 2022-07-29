@@ -89,7 +89,7 @@ const int GAME_SOLUTION[NUM_PHASES][PHASE_SIZE] = {
     {2, 1, 1, 0, 2, -1, -1, -1, -1},
     {1, 2, 1, 2, 0, 1, 0, 1, 2}};
 
-const unsigned long HINT_STEP_MS = 1200;
+const unsigned long HINT_STEP_MS = 1000;
 const unsigned long GAME_IDLE_MS = 5000;
 const unsigned long HINT_LOOP_REPEAT_MS = 5000;
 
