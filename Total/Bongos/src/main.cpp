@@ -90,8 +90,8 @@ const int GAME_SOLUTION[NUM_PHASES][PHASE_SIZE] = {
     {1, 2, 0, 1, 2, 0, 1, 2, 0}};
 
 const unsigned long HINT_STEP_MS = 1200;
-const unsigned long GAME_IDLE_MS = 6000;
-const unsigned long HINT_LOOP_REPEAT_MS = 6000;
+const unsigned long GAME_IDLE_MS = 10000;
+const unsigned long HINT_LOOP_REPEAT_MS = 10000;
 
 /**
  * Program state
@@ -118,6 +118,7 @@ typedef struct programState
   unsigned long effectFailStartMillis;
   unsigned long effectOkStartMillis;
   unsigned long resetStartMillis;
+  unsigned long hintReferenceMillis;
 } ProgramState;
 
 ProgramState progState;
@@ -133,6 +134,7 @@ void initState()
   progState.effectFailStartMillis = 0;
   progState.effectOkStartMillis = 0;
   progState.resetStartMillis = 0;
+  progState.hintReferenceMillis = 0;
 }
 
 void setEffectFail()
@@ -304,7 +306,7 @@ bool isHintEnabled()
 {
   unsigned long now = millis();
 
-  if (progState.lastPressMillis == 0 && now < GAME_IDLE_MS)
+  if ((now - progState.hintReferenceMillis) < GAME_IDLE_MS)
   {
     return false;
   }
@@ -442,6 +444,8 @@ void onGameEnd()
 
   ledEffects.clear();
   ledEffects.show();
+
+  progState.hintReferenceMillis = millis();
 }
 
 void onButtonPress(int idx, int v, int up)
@@ -478,6 +482,7 @@ void onButtonPress(int idx, int v, int up)
     setEffectOk();
     enqueueTrack(PIN_AUDIO_TRACK_PHASE);
     progState.currentPhase++;
+    progState.hintReferenceMillis = millis();
     clearHintLoopState();
   }
 }
@@ -724,6 +729,8 @@ void checkReset()
   clearAudioPins();
 
   startupEffect();
+
+  progState.hintReferenceMillis = millis();
 }
 
 void onTimerGeneral(int idx, int v, int up)
@@ -756,6 +763,8 @@ void setup()
   startupEffect();
 
   Serial.println(F(">> Bongos de Simon"));
+
+  progState.hintReferenceMillis = millis();
 }
 
 void loop()
