@@ -49,14 +49,6 @@ const uint8_t PIN_AUDIO_TRACK_PHASE = 10;
 
 const uint16_t AUDIO_BUF_SIZE = 2;
 
-typedef struct audioRequest
-{
-  unsigned long millis;
-  uint8_t trackPin;
-} AudioRequest;
-
-CircularBuffer<AudioRequest, AUDIO_BUF_SIZE> audioRequestsQueue;
-
 const unsigned long MAX_AUDIO_DIFF_MILLIS = 350;
 const unsigned long CLEAR_AUDIO_WAIT_MILLIS = 100;
 
@@ -103,6 +95,14 @@ const unsigned long HINT_LOOP_REPEAT_MS = 6000;
  * Program state
  */
 
+typedef struct audioRequest
+{
+  unsigned long millis;
+  uint8_t trackPin;
+} AudioRequest;
+
+CircularBuffer<AudioRequest, AUDIO_BUF_SIZE> audioRequestsQueue;
+
 CircularBuffer<uint8_t, PHASE_SIZE> buttonsBuf;
 
 typedef struct programState
@@ -115,6 +115,7 @@ typedef struct programState
   unsigned long lastPlayMillis;
   unsigned long effectFailStartMillis;
   unsigned long effectOkStartMillis;
+  unsigned long resetStartMillis;
 } ProgramState;
 
 ProgramState progState;
@@ -129,6 +130,7 @@ void initState()
   progState.lastPlayMillis = 0;
   progState.effectFailStartMillis = 0;
   progState.effectOkStartMillis = 0;
+  progState.resetStartMillis = 0;
 }
 
 void setEffectFail()
@@ -300,6 +302,11 @@ bool isHintEnabled()
 {
   unsigned long now = millis();
 
+  if (progState.lastPressMillis == 0 && now < GAME_IDLE_MS)
+  {
+    return false;
+  }
+
   if ((now - progState.lastPressMillis) < GAME_IDLE_MS)
   {
     return false;
@@ -313,6 +320,14 @@ bool isHintEnabled()
   if ((now - progState.lastHintLoopEndMillis) < HINT_LOOP_REPEAT_MS)
   {
     return false;
+  }
+
+  for (int i = 0; i < NUM_BUTTONS; i++)
+  {
+    if (buttons[i].state() != Atm_button::IDLE)
+    {
+      return false;
+    }
   }
 
   return true;
@@ -362,6 +377,71 @@ void clearHintLoopState()
   progState.lastHintLoopEndMillis = 0;
 }
 
+void onGameEnd()
+{
+  const unsigned long shortWaitMs = 40;
+  const uint8_t numIters = 20;
+  const uint16_t delayMs = 100;
+  const uint32_t white = Adafruit_NeoPixel::Color(200, 200, 200);
+
+  audioRequestsQueue.clear();
+  buttonsBuf.clear();
+  initState();
+  clearAudioPins();
+
+  while (isTrackPlaying())
+  {
+    delay(shortWaitMs);
+  }
+
+  playTrack(PIN_AUDIO_TRACK_VICTORY);
+  delay(CLEAR_AUDIO_WAIT_MILLIS);
+  clearAudioPins();
+
+  for (uint8_t i = 0; i < numIters; i++)
+  {
+    uint8_t brightness = random(100, 250);
+
+    uint32_t color = Adafruit_NeoPixel::Color(
+        i % 3 == 0 ? brightness : 0,
+        i % 3 == 1 ? brightness : 0,
+        i % 3 == 2 ? brightness : 0);
+
+    ledProgress.fill(color);
+    ledProgress.show();
+
+    ledEffects.fill(color);
+    ledEffects.show();
+
+    delay(delayMs);
+
+    ledProgress.clear();
+    ledProgress.show();
+
+    ledEffects.clear();
+    ledEffects.show();
+
+    delay(delayMs);
+  }
+
+  while (isTrackPlaying())
+  {
+    ledProgress.fill(white);
+    ledProgress.show();
+
+    ledEffects.fill(white);
+    ledEffects.show();
+
+    delay(shortWaitMs);
+  }
+
+  ledProgress.clear();
+  ledProgress.show();
+
+  ledEffects.clear();
+  ledEffects.show();
+}
+
 void onButtonPress(int idx, int v, int up)
 {
   Serial.print(F("Button: "));
@@ -388,13 +468,13 @@ void onButtonPress(int idx, int v, int up)
   }
   else if (phaseComplete && lastPhase)
   {
-    initState();
-    enqueueTrack(PIN_AUDIO_TRACK_VICTORY);
+    onGameEnd();
   }
   else if (phaseComplete)
   {
     setEffectOk();
     progState.currentPhase++;
+    buttonsBuf.clear();
     clearHintLoopState();
   }
 }
@@ -405,6 +485,7 @@ void initButtons()
 
   for (int i = 0; i < NUM_BUTTONS; i++)
   {
+    buttons[i].state();
     buttons[i]
         .begin(PIN_BUTTONS[i])
         .debounce(debounceDelayMs)
@@ -569,12 +650,87 @@ void updateEffectsLed()
   }
 }
 
+void startupEffect()
+{
+  const uint8_t numIters = 7;
+  const uint16_t delayMs = 200;
+  const uint32_t color = Adafruit_NeoPixel::Color(100, 100, 100);
+
+  for (uint8_t i = 0; i < numIters; i++)
+  {
+    ledProgress.fill(color);
+    ledProgress.show();
+
+    ledEffects.fill(color);
+    ledEffects.show();
+
+    delay(delayMs);
+
+    ledProgress.clear();
+    ledProgress.show();
+
+    ledEffects.clear();
+    ledEffects.show();
+
+    delay(delayMs);
+  }
+
+  ledProgress.clear();
+  ledProgress.show();
+
+  ledEffects.clear();
+  ledEffects.show();
+
+  for (uint8_t i = 0; i < NUM_BUTTONS; i++)
+  {
+    buttonLeds[i].trigger(Atm_led::EVT_BLINK);
+  }
+}
+
+void checkReset()
+{
+  const unsigned long resetDelayMs = 8000;
+
+  for (int i = 0; i < NUM_BUTTONS; i++)
+  {
+    if (buttons[i].state() == Atm_button::IDLE)
+    {
+      progState.resetStartMillis = 0;
+      return;
+    }
+  }
+
+  unsigned long now = millis();
+
+  if (progState.resetStartMillis == 0)
+  {
+    progState.resetStartMillis = now;
+  }
+
+  unsigned long diffResetMs = now - progState.resetStartMillis;
+
+  if (diffResetMs < resetDelayMs)
+  {
+    return;
+  }
+
+  Serial.println(F("Reset"));
+
+  audioRequestsQueue.clear();
+  buttonsBuf.clear();
+  initState();
+  clearAudioPins();
+
+  startupEffect();
+}
+
 void onTimerGeneral(int idx, int v, int up)
 {
   showHint();
   processAudioQueue();
   updateProgressLed();
   updateEffectsLed();
+  checkReset();
 }
 
 void initTimerGeneral()
@@ -584,31 +740,6 @@ void initTimerGeneral()
       .repeat(-1)
       .onTimer(onTimerGeneral)
       .start();
-}
-
-void startupEffect()
-{
-  const uint8_t numIters = 5;
-  const uint16_t delayMs = 200;
-  const uint32_t color = Adafruit_NeoPixel::Color(200, 200, 200);
-
-  for (uint8_t i = 0; i < numIters; i++)
-  {
-    ledProgress.fill(color);
-    ledProgress.show();
-    delay(delayMs);
-    ledProgress.clear();
-    ledProgress.show();
-    delay(delayMs);
-  }
-
-  ledProgress.clear();
-  ledProgress.show();
-
-  for (uint8_t i = 0; i < NUM_BUTTONS; i++)
-  {
-    buttonLeds[i].trigger(Atm_led::EVT_BLINK);
-  }
 }
 
 void setup()
