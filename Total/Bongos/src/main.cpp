@@ -35,8 +35,11 @@ const uint8_t PIN_AUDIO_RST = 3;
 
 const uint8_t PIN_AUDIO_TRACK_BUTTONS[NUM_BUTTONS] = {4, 5, 6};
 
-// On phase consolidation
-const uint8_t PIN_AUDIO_TRACK_OK = 7;
+// Before hint
+const uint8_t PIN_AUDIO_TRACK_HINT_BEFORE = 10;
+
+// After hint
+const uint8_t PIN_AUDIO_TRACK_HINT_AFTER = 7;
 
 // On button press fail
 const uint8_t PIN_AUDIO_TRACK_FAIL = 8;
@@ -44,12 +47,9 @@ const uint8_t PIN_AUDIO_TRACK_FAIL = 8;
 // On game victory
 const uint8_t PIN_AUDIO_TRACK_VICTORY = 9;
 
-// On new phase start
-const uint8_t PIN_AUDIO_TRACK_PHASE = 10;
-
 const uint16_t AUDIO_BUF_SIZE = 2;
 
-const unsigned long MAX_AUDIO_DIFF_MILLIS = 350;
+const unsigned long DEFAULT_AUDIO_MAX_DELAY_MILLIS = 350;
 const unsigned long CLEAR_AUDIO_WAIT_MILLIS = 100;
 
 /**
@@ -101,6 +101,7 @@ typedef struct audioRequest
 {
   unsigned long millis;
   uint8_t trackPin;
+  uint16_t maxDelayMs;
 } AudioRequest;
 
 CircularBuffer<AudioRequest, AUDIO_BUF_SIZE> audioRequestsQueue;
@@ -112,6 +113,7 @@ typedef struct programState
   unsigned long lastPressMillis;
   uint8_t currentPhase;
   uint8_t currentHintStep;
+  bool playedHintBefore;
   unsigned long lastHintMillis;
   unsigned long lastHintLoopEndMillis;
   unsigned long lastPlayMillis;
@@ -128,6 +130,7 @@ void initState()
   progState.lastPressMillis = 0;
   progState.currentPhase = 0;
   progState.currentHintStep = 0;
+  progState.playedHintBefore = false;
   progState.lastHintMillis = 0;
   progState.lastHintLoopEndMillis = 0;
   progState.lastPlayMillis = 0;
@@ -238,10 +241,10 @@ void clearAudioPins()
     pinMode(PIN_AUDIO_TRACK_BUTTONS[i], INPUT);
   }
 
-  pinMode(PIN_AUDIO_TRACK_OK, INPUT);
+  pinMode(PIN_AUDIO_TRACK_HINT_BEFORE, INPUT);
   pinMode(PIN_AUDIO_TRACK_FAIL, INPUT);
   pinMode(PIN_AUDIO_TRACK_VICTORY, INPUT);
-  pinMode(PIN_AUDIO_TRACK_PHASE, INPUT);
+  pinMode(PIN_AUDIO_TRACK_HINT_AFTER, INPUT);
 }
 
 void initAudioPins()
@@ -251,18 +254,22 @@ void initAudioPins()
     pinMode(PIN_AUDIO_TRACK_BUTTONS[i], INPUT);
   }
 
-  pinMode(PIN_AUDIO_TRACK_OK, INPUT);
+  pinMode(PIN_AUDIO_TRACK_HINT_BEFORE, INPUT);
   pinMode(PIN_AUDIO_TRACK_FAIL, INPUT);
   pinMode(PIN_AUDIO_TRACK_VICTORY, INPUT);
-  pinMode(PIN_AUDIO_TRACK_PHASE, INPUT);
+  pinMode(PIN_AUDIO_TRACK_HINT_AFTER, INPUT);
 
   pinMode(PIN_AUDIO_ACT, INPUT);
   pinMode(PIN_AUDIO_RST, INPUT);
 }
 
-void enqueueTrack(uint8_t trackPin)
+void enqueueTrack(uint8_t trackPin, uint16_t maxDelayMs = DEFAULT_AUDIO_MAX_DELAY_MILLIS)
 {
-  AudioRequest audioReq = {.millis = millis(), .trackPin = trackPin};
+  AudioRequest audioReq = {
+      .millis = millis(),
+      .trackPin = trackPin,
+      .maxDelayMs = maxDelayMs};
+
   audioRequestsQueue.push(audioReq);
 }
 
@@ -306,6 +313,11 @@ bool isHintEnabled()
 {
   unsigned long now = millis();
 
+  if (isTrackPlaying())
+  {
+    return false;
+  }
+
   if ((now - progState.hintReferenceMillis) < GAME_IDLE_MS)
   {
     return false;
@@ -346,6 +358,13 @@ void showHint()
 
   buttonsBuf.clear();
 
+  if (!progState.playedHintBefore)
+  {
+    enqueueTrack(PIN_AUDIO_TRACK_HINT_BEFORE);
+    progState.playedHintBefore = true;
+    return;
+  }
+
   uint8_t currBtnIdx = GAME_SOLUTION[progState.currentPhase][progState.currentHintStep];
 
   if (currBtnIdx >= NUM_BUTTONS)
@@ -358,6 +377,9 @@ void showHint()
 
   progState.lastHintMillis = now;
 
+  buttonLeds[currBtnIdx].trigger(Atm_led::EVT_BLINK);
+  enqueueTrack(PIN_AUDIO_TRACK_BUTTONS[currBtnIdx]);
+
   uint8_t phaseSize = getPhaseSize(progState.currentPhase);
 
   if (progState.currentHintStep < (phaseSize - 1))
@@ -368,10 +390,8 @@ void showHint()
   {
     progState.currentHintStep = 0;
     progState.lastHintLoopEndMillis = now;
+    enqueueTrack(PIN_AUDIO_TRACK_HINT_AFTER, HINT_STEP_MS);
   }
-
-  buttonLeds[currBtnIdx].trigger(Atm_led::EVT_BLINK);
-  enqueueTrack(PIN_AUDIO_TRACK_BUTTONS[currBtnIdx]);
 }
 
 void clearHintLoopState()
@@ -379,6 +399,7 @@ void clearHintLoopState()
   progState.currentHintStep = 0;
   progState.lastHintMillis = 0;
   progState.lastHintLoopEndMillis = 0;
+  progState.playedHintBefore = false;
 }
 
 void onGameEnd()
@@ -480,7 +501,6 @@ void onButtonPress(int idx, int v, int up)
   {
     buttonsBuf.clear();
     setEffectOk();
-    enqueueTrack(PIN_AUDIO_TRACK_PHASE);
     progState.currentPhase++;
     progState.hintReferenceMillis = millis();
     clearHintLoopState();
@@ -527,7 +547,7 @@ void processAudioQueue()
     AudioRequest audioReq = audioRequestsQueue.shift();
     unsigned long diffMillis = millis() - audioReq.millis;
 
-    if (diffMillis <= MAX_AUDIO_DIFF_MILLIS)
+    if (diffMillis <= audioReq.maxDelayMs)
     {
       playTrack(audioReq.trackPin);
       break;
