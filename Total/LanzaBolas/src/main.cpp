@@ -30,6 +30,7 @@ const uint32_t COLOR_VICTORY = Adafruit_NeoPixel::Color(0, 250, 0);
  * Program state.
  */
 
+const uint16_t SENSOR_POINT_VALUES[SENSOR_NUM] = {1, 1, 1, 1};
 const uint16_t POINTS_LIMIT = 4;
 
 typedef struct programState
@@ -127,7 +128,7 @@ void onSensorPress(int idx, int v, int up)
   Serial.println(idx);
 
   progState.lastHit = millis();
-  progState.totalPoints++;
+  progState.totalPoints += SENSOR_POINT_VALUES[idx];
 
   if (progState.totalPoints >= POINTS_LIMIT)
   {
