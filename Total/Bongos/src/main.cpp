@@ -47,8 +47,8 @@ const uint8_t PIN_AUDIO_TRACK_FAIL = 8;
 // On game victory
 const uint8_t PIN_AUDIO_TRACK_VICTORY = 9;
 
-const unsigned long DEFAULT_AUDIO_MAX_DELAY_MILLIS = 350;
-const unsigned long CLEAR_AUDIO_WAIT_MILLIS = 100;
+const unsigned long DEFAULT_AUDIO_MAX_DELAY_MILLIS = 400;
+const unsigned long CLEAR_AUDIO_WAIT_MILLIS = 250;
 
 /**
  * LED strips
@@ -361,6 +361,10 @@ void showHint()
 
   buttonsBuf.clear();
 
+  unsigned long now = millis();
+
+  progState.lastHintMillis = now;
+
   if (!progState.playedHintBefore)
   {
     enqueueTrack(PIN_AUDIO_TRACK_HINT_BEFORE);
@@ -375,10 +379,6 @@ void showHint()
     Serial.println(F("WARNING: Unexpected button index"));
     return;
   }
-
-  unsigned long now = millis();
-
-  progState.lastHintMillis = now;
 
   buttonLeds[currBtnIdx].trigger(Atm_led::EVT_BLINK);
   enqueueTrack(PIN_AUDIO_TRACK_BUTTONS[currBtnIdx]);
@@ -395,8 +395,7 @@ void showHint()
     progState.lastHintLoopEndMillis = now;
     progState.playedHintBefore = false;
 
-    uint16_t trackAfterMaxDelayMs = HINT_STEP_MS * 2.0;
-    enqueueTrack(PIN_AUDIO_TRACK_HINT_AFTER, trackAfterMaxDelayMs);
+    enqueueTrack(PIN_AUDIO_TRACK_HINT_AFTER, HINT_STEP_MS);
   }
 }
 
@@ -425,6 +424,7 @@ void onGameEnd()
     delay(shortWaitMs);
   }
 
+  delay(CLEAR_AUDIO_WAIT_MILLIS);
   playTrack(PIN_AUDIO_TRACK_VICTORY);
   delay(CLEAR_AUDIO_WAIT_MILLIS);
   clearAudioPins();
@@ -507,6 +507,7 @@ void onButtonPress(int idx, int v, int up)
   {
     buttonsBuf.clear();
     setEffectOk();
+    enqueueTrack(PIN_AUDIO_TRACK_BUTTONS[idx]);
     progState.currentPhase++;
     progState.hintReferenceMillis = millis();
     clearHintLoopState();
@@ -542,6 +543,10 @@ void processAudioQueue()
   if (diffLastPlayMillis >= CLEAR_AUDIO_WAIT_MILLIS)
   {
     clearAudioPins();
+  }
+  else if (progState.lastPlayMillis > 0)
+  {
+    return;
   }
 
   bool isPlaying = isTrackPlaying();
