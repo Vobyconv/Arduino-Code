@@ -4,7 +4,7 @@
 #include <Automaton.h>
 
 /**
- * Buttons ya
+ * Buttons
  */
 
 const uint8_t NUM_BUTTONS = 3;
@@ -86,8 +86,8 @@ const uint8_t PHASE_SIZE = 9;
 // Array values must be in range [-1, NUM_BUTTONS)
 
 const int GAME_SOLUTION[NUM_PHASES][PHASE_SIZE] = {
-    {2, 1, 1, 0, -2, -1, -1, -1, -1},
-    {1, 2, 1, 2, 0, 1, -0, -1, -2}};
+    {2, 1, 1, 0, -1, -1, -1, -1, -1},
+    {1, 2, 1, 2, 0, 1, -1, -1, -1}};
 
 const unsigned long HINT_STEP_MS = 1000;
 const unsigned long GAME_IDLE_MS = 5000;
