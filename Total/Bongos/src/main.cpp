@@ -117,6 +117,8 @@ typedef struct programState
   unsigned long lastHintMillis;
   unsigned long lastHintLoopEndMillis;
   unsigned long lastPlayMillis;
+  unsigned long lastPlayEndMillis;
+  bool lastPlayEndMillisFlag;
   unsigned long effectFailStartMillis;
   unsigned long effectOkStartMillis;
   unsigned long resetStartMillis;
@@ -134,6 +136,8 @@ void initState()
   progState.lastHintMillis = 0;
   progState.lastHintLoopEndMillis = 0;
   progState.lastPlayMillis = 0;
+  progState.lastPlayEndMillis = 0;
+  progState.lastPlayEndMillisFlag = false;
   progState.effectFailStartMillis = 0;
   progState.effectOkStartMillis = 0;
   progState.resetStartMillis = 0;
@@ -313,7 +317,7 @@ bool isHintEnabled()
 {
   unsigned long now = millis();
 
-  if (isTrackPlaying())
+  if (isTrackPlaying() || (progState.lastPlayEndMillis + HINT_STEP_MS) > now)
   {
     return false;
   }
@@ -390,7 +394,10 @@ void showHint()
   {
     progState.currentHintStep = 0;
     progState.lastHintLoopEndMillis = now;
-    enqueueTrack(PIN_AUDIO_TRACK_HINT_AFTER, HINT_STEP_MS);
+    progState.playedHintBefore = false;
+
+    uint16_t trackAfterMaxDelayMs = HINT_STEP_MS * 1.3;
+    enqueueTrack(PIN_AUDIO_TRACK_HINT_AFTER, trackAfterMaxDelayMs);
   }
 }
 
@@ -530,14 +537,32 @@ void initButtons()
 
 void processAudioQueue()
 {
-  unsigned long diffLastPlayMillis = millis() - progState.lastPlayMillis;
+  unsigned long now = millis();
+  unsigned long diffLastPlayMillis = now - progState.lastPlayMillis;
 
   if (diffLastPlayMillis >= CLEAR_AUDIO_WAIT_MILLIS)
   {
     clearAudioPins();
   }
 
-  if (audioRequestsQueue.isEmpty() || isTrackPlaying())
+  bool isPlaying = isTrackPlaying();
+
+  if (isPlaying)
+  {
+    if (!progState.lastPlayEndMillisFlag)
+    {
+      progState.lastPlayEndMillisFlag = true;
+    }
+
+    return;
+  }
+  else if (!isPlaying && progState.lastPlayEndMillisFlag)
+  {
+    progState.lastPlayEndMillis = now;
+    progState.lastPlayEndMillisFlag = false;
+  }
+
+  if (audioRequestsQueue.isEmpty())
   {
     return;
   }
