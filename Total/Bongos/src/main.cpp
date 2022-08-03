@@ -745,7 +745,7 @@ void startupEffect()
 
 void checkReset()
 {
-  const unsigned long resetDelayMs = 8000;
+  const unsigned long resetDelayMs = 5000;
 
   for (int i = 0; i < NUM_BUTTONS; i++)
   {
