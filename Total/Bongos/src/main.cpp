@@ -410,7 +410,7 @@ void clearHintLoopState()
 void onGameEnd()
 {
   const unsigned long shortWaitMs = 40;
-  const uint8_t numIters = 20;
+  const uint8_t numIters = 30;
   const uint16_t delayMs = 100;
   const uint32_t white = Adafruit_NeoPixel::Color(200, 200, 200);
 
