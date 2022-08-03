@@ -47,8 +47,6 @@ const uint8_t PIN_AUDIO_TRACK_FAIL = 8;
 // On game victory
 const uint8_t PIN_AUDIO_TRACK_VICTORY = 9;
 
-const uint16_t AUDIO_BUF_SIZE = 2;
-
 const unsigned long DEFAULT_AUDIO_MAX_DELAY_MILLIS = 350;
 const unsigned long CLEAR_AUDIO_WAIT_MILLIS = 100;
 
@@ -104,6 +102,7 @@ typedef struct audioRequest
   uint16_t maxDelayMs;
 } AudioRequest;
 
+const uint16_t AUDIO_BUF_SIZE = 3;
 CircularBuffer<AudioRequest, AUDIO_BUF_SIZE> audioRequestsQueue;
 
 CircularBuffer<uint8_t, PHASE_SIZE> buttonsBuf;
@@ -317,7 +316,7 @@ bool isHintEnabled()
 {
   unsigned long now = millis();
 
-  if (isTrackPlaying() || (progState.lastPlayEndMillis + HINT_STEP_MS) > now)
+  if (isTrackPlaying())
   {
     return false;
   }
@@ -396,7 +395,7 @@ void showHint()
     progState.lastHintLoopEndMillis = now;
     progState.playedHintBefore = false;
 
-    uint16_t trackAfterMaxDelayMs = HINT_STEP_MS * 1.3;
+    uint16_t trackAfterMaxDelayMs = HINT_STEP_MS * 2.0;
     enqueueTrack(PIN_AUDIO_TRACK_HINT_AFTER, trackAfterMaxDelayMs);
   }
 }
