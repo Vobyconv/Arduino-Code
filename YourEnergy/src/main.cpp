@@ -25,7 +25,6 @@ Uduino uduino(UDUINO_ID);
 
 const uint8_t CODE_ENYE = 0x33;
 
-const unsigned long PRESS_DELAY_MS = 80;
 const unsigned long DELAY_LOOP_MS = 10;
 
 typedef struct joystickInfo
@@ -82,55 +81,52 @@ ProgramState progState = {
     .gameStartMs = 0,
     .lastHeartbeatMs = 0};
 
-void pressKey(uint8_t code)
-{
-  Keyboard.press(code);
-  delay(PRESS_DELAY_MS);
-  Keyboard.releaseAll();
-}
-
 void onJoyUp(int idx, int v, int up)
 {
-  pressKey(KEY_UP_ARROW);
+  Keyboard.write(KEY_UP_ARROW);
 }
 
 void onJoyDown(int idx, int v, int up)
 {
-  pressKey(KEY_DOWN_ARROW);
+  Keyboard.write(KEY_DOWN_ARROW);
 }
 
 void onJoyLeft(int idx, int v, int up)
 {
-  pressKey(KEY_LEFT_ARROW);
+  Keyboard.write(KEY_LEFT_ARROW);
 }
 
 void onJoyRight(int idx, int v, int up)
 {
-  pressKey(KEY_RIGHT_ARROW);
+  Keyboard.write(KEY_RIGHT_ARROW);
 }
 
 void initJoystick()
 {
   joyBtnUp
       .begin(joyInfo.pinUp)
-      .onPress(onJoyUp);
+      .onPress(onJoyUp)
+      .repeat();
 
   joyBtnDown
       .begin(joyInfo.pinDown)
-      .onPress(onJoyDown);
+      .onPress(onJoyDown)
+      .repeat();
 
   joyBtnLeft
       .begin(joyInfo.pinLeft)
-      .onPress(onJoyLeft);
+      .onPress(onJoyLeft)
+      .repeat();
 
   joyBtnRight
       .begin(joyInfo.pinRight)
-      .onPress(onJoyRight);
+      .onPress(onJoyRight)
+      .repeat();
 }
 
 void onButtonPress(int idx, int v, int up)
 {
-  pressKey(BUTTON_KEY_MAP[idx]);
+  Keyboard.write(BUTTON_KEY_MAP[idx]);
 }
 
 void initButtons()
