@@ -56,6 +56,7 @@ typedef struct buttonConfig
 
 Atm_button atmButtons[NUM_BUTTONS];
 Atm_led atmLeds[NUM_BUTTONS];
+Atm_led atmLedBuiltin;
 
 ButtonConfig btnConfs[NUM_BUTTONS] = {
     {.pinBtn = 6, .pinLed = 7},
@@ -81,47 +82,67 @@ ProgramState progState = {
     .gameStartMs = 0,
     .lastHeartbeatMs = 0};
 
-void onJoyUp(int idx, int v, int up)
+void onJoyUpPress(int idx, int v, int up)
 {
-  Keyboard.write(KEY_UP_ARROW);
+  Keyboard.press(KEY_UP_ARROW);
 }
 
-void onJoyDown(int idx, int v, int up)
+void onJoyDownPress(int idx, int v, int up)
 {
-  Keyboard.write(KEY_DOWN_ARROW);
+  Keyboard.press(KEY_DOWN_ARROW);
 }
 
-void onJoyLeft(int idx, int v, int up)
+void onJoyLeftPress(int idx, int v, int up)
 {
-  Keyboard.write(KEY_LEFT_ARROW);
+  Keyboard.press(KEY_LEFT_ARROW);
 }
 
-void onJoyRight(int idx, int v, int up)
+void onJoyRightPress(int idx, int v, int up)
 {
-  Keyboard.write(KEY_RIGHT_ARROW);
+  Keyboard.press(KEY_RIGHT_ARROW);
+}
+
+void onJoyUpRelease(int idx, int v, int up)
+{
+  Keyboard.release(KEY_UP_ARROW);
+}
+
+void onJoyDownRelease(int idx, int v, int up)
+{
+  Keyboard.release(KEY_DOWN_ARROW);
+}
+
+void onJoyLeftRelease(int idx, int v, int up)
+{
+  Keyboard.release(KEY_LEFT_ARROW);
+}
+
+void onJoyRightRelease(int idx, int v, int up)
+{
+  Keyboard.release(KEY_RIGHT_ARROW);
 }
 
 void initJoystick()
 {
   joyBtnUp
       .begin(joyInfo.pinUp)
-      .onPress(onJoyUp)
-      .repeat();
+      .onPress(onJoyUpPress)
+      .onRelease(onJoyUpRelease);
 
   joyBtnDown
       .begin(joyInfo.pinDown)
-      .onPress(onJoyDown)
-      .repeat();
+      .onPress(onJoyDownPress)
+      .onRelease(onJoyDownRelease);
 
   joyBtnLeft
       .begin(joyInfo.pinLeft)
-      .onPress(onJoyLeft)
-      .repeat();
+      .onPress(onJoyLeftPress)
+      .onRelease(onJoyLeftRelease);
 
   joyBtnRight
       .begin(joyInfo.pinRight)
-      .onPress(onJoyRight)
-      .repeat();
+      .onPress(onJoyRightPress)
+      .onRelease(onJoyRightRelease);
 }
 
 void onButtonPress(int idx, int v, int up)
@@ -147,28 +168,7 @@ void initButtons()
 
 void blinkLed()
 {
-  const int delayBlinkMs = 50;
-  int numBlinks = 15;
-
-  int numParams = uduino.getNumberOfParameters();
-
-  if (numParams > 0)
-  {
-    char *firstParam = uduino.getParameter(0);
-    numBlinks = uduino.charToInt(firstParam);
-  }
-
-  for (int i = 0; i < numBlinks; i++)
-  {
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(delayBlinkMs);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(delayBlinkMs);
-  }
-
-  digitalWrite(LED_BUILTIN, LOW);
-
-  uduino.println(numBlinks);
+  atmLedBuiltin.trigger(atmLedBuiltin.EVT_BLINK);
 }
 
 void initGame()
@@ -203,9 +203,13 @@ void heartbeat()
 
 void setup()
 {
+  const uint32_t blinkDuration = 50;
+  const uint32_t blinkPause = 50;
+  const uint16_t blinkRepeat = 10;
+
   Serial.begin(9600);
   Keyboard.begin();
-  pinMode(LED_BUILTIN, OUTPUT);
+  atmLedBuiltin.begin(LED_BUILTIN).blink(blinkDuration, blinkPause, blinkRepeat);
   initJoystick();
   initButtons();
   uduino.addCommand("blinkLed", blinkLed);
