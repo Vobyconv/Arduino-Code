@@ -54,6 +54,9 @@ typedef struct buttonConfig
   uint8_t pinLed;
 } ButtonConfig;
 
+const uint8_t PIN_ACTION_BUTTON = A3;
+
+Atm_button atmActionButton;
 Atm_button atmButtons[NUM_BUTTONS];
 Atm_led atmLeds[NUM_BUTTONS];
 Atm_led atmLedBuiltin;
@@ -68,19 +71,27 @@ ButtonConfig btnConfs[NUM_BUTTONS] = {
 const uint8_t BUTTON_KEY_MAP[NUM_BUTTONS] = {
     'P', 'O', 'I', 'U', 'Y'};
 
+const uint8_t ACTION_BUTTON_KEY = 'T';
+
 const uint16_t HEARTBEAT_MS = 10000;
+
+const uint16_t SET_ACTIVE_BUTTON_DEBOUNCE_MS = 500;
 
 typedef struct programState
 {
   int gameCode;
   unsigned long gameStartMs;
   unsigned long lastHeartbeatMs;
+  int idxActiveButton;
+  unsigned long lastActiveButtonMs;
 } ProgramState;
 
 ProgramState progState = {
     .gameCode = 0,
     .gameStartMs = 0,
-    .lastHeartbeatMs = 0};
+    .lastHeartbeatMs = 0,
+    .idxActiveButton = -1,
+    .lastActiveButtonMs = 0};
 
 void onJoyUpPress(int idx, int v, int up)
 {
@@ -150,6 +161,11 @@ void onButtonPress(int idx, int v, int up)
   Keyboard.write(BUTTON_KEY_MAP[idx]);
 }
 
+void onActionButtonPress(int idx, int v, int up)
+{
+  Keyboard.print(ACTION_BUTTON_KEY);
+}
+
 void initButtons()
 {
   for (uint8_t i = 0; i < NUM_BUTTONS; i++)
@@ -164,6 +180,10 @@ void initButtons()
     atmLeds[i]
         .trigger(atmLeds[i].EVT_OFF);
   }
+
+  atmActionButton
+      .begin(PIN_ACTION_BUTTON)
+      .onPress(onActionButtonPress);
 }
 
 void blinkLed()
@@ -185,6 +205,35 @@ void initGame()
 
   progState.gameCode = gameCode;
   progState.gameStartMs = millis();
+}
+
+void setActiveButton()
+{
+  int numParams = uduino.getNumberOfParameters();
+
+  if (numParams != 1)
+  {
+    return;
+  }
+
+  char *firstParam = uduino.getParameter(0);
+  int idxButton = uduino.charToInt(firstParam);
+
+  if (idxButton < 0 || idxButton >= NUM_BUTTONS)
+  {
+    return;
+  }
+
+  unsigned long now = millis();
+  unsigned long diffMs = now - progState.lastActiveButtonMs;
+
+  if (diffMs <= SET_ACTIVE_BUTTON_DEBOUNCE_MS)
+  {
+    return;
+  }
+
+  progState.lastActiveButtonMs = now;
+  progState.idxActiveButton = idxButton;
 }
 
 void heartbeat()
@@ -214,6 +263,7 @@ void setup()
   initButtons();
   uduino.addCommand("blinkLed", blinkLed);
   uduino.addCommand("initGame", initGame);
+  uduino.addCommand("setActiveButton", setActiveButton);
 }
 
 void loop()
