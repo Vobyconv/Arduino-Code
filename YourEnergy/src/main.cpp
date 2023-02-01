@@ -3,6 +3,13 @@
 #include <Uduino.h>
 #include <Automaton.h>
 
+const int16_t UP = 1;
+const int16_t DOWN = 2;
+const int16_t LEFT = 3;
+const int16_t RIGHT = 4;
+
+const unsigned long PRESS_DELAY_MS = 80;
+
 const char *UDUINO_ID = "yourEnergyArduino";
 
 Uduino uduino(UDUINO_ID);
@@ -77,6 +84,10 @@ const uint16_t HEARTBEAT_MS = 10000;
 
 const uint16_t SET_ACTIVE_BUTTON_DEBOUNCE_MS = 500;
 
+Atm_timer timerState;
+
+const uint32_t TIMER_STATE_MS = 200;
+
 typedef struct programState
 {
   int gameCode;
@@ -93,77 +104,97 @@ ProgramState progState = {
     .idxActiveButton = -1,
     .lastActiveButtonMs = 0};
 
-void onJoyUpPress(int idx, int v, int up)
+void pressKey(uint8_t code)
 {
-  Keyboard.press(KEY_UP_ARROW);
+  Keyboard.press(code);
+  delay(PRESS_DELAY_MS);
+  Keyboard.releaseAll();
 }
 
-void onJoyDownPress(int idx, int v, int up)
+void onJoyPress(int idx, int v, int up)
 {
-  Keyboard.press(KEY_DOWN_ARROW);
+  switch (idx)
+  {
+  case UP:
+    Keyboard.press(KEY_UP_ARROW);
+    break;
+  case DOWN:
+    Keyboard.press(KEY_DOWN_ARROW);
+    break;
+  case RIGHT:
+    Keyboard.press(KEY_RIGHT_ARROW);
+    break;
+  case LEFT:
+    Keyboard.press(KEY_LEFT_ARROW);
+    break;
+  default:
+    break;
+  }
 }
 
-void onJoyLeftPress(int idx, int v, int up)
+void onJoyRelease(int idx, int v, int up)
 {
-  Keyboard.press(KEY_LEFT_ARROW);
-}
-
-void onJoyRightPress(int idx, int v, int up)
-{
-  Keyboard.press(KEY_RIGHT_ARROW);
-}
-
-void onJoyUpRelease(int idx, int v, int up)
-{
-  Keyboard.release(KEY_UP_ARROW);
-}
-
-void onJoyDownRelease(int idx, int v, int up)
-{
-  Keyboard.release(KEY_DOWN_ARROW);
-}
-
-void onJoyLeftRelease(int idx, int v, int up)
-{
-  Keyboard.release(KEY_LEFT_ARROW);
-}
-
-void onJoyRightRelease(int idx, int v, int up)
-{
-  Keyboard.release(KEY_RIGHT_ARROW);
+  switch (idx)
+  {
+  case UP:
+    Keyboard.release(KEY_UP_ARROW);
+    break;
+  case DOWN:
+    Keyboard.release(KEY_DOWN_ARROW);
+    break;
+  case RIGHT:
+    Keyboard.release(KEY_RIGHT_ARROW);
+    break;
+  case LEFT:
+    Keyboard.release(KEY_LEFT_ARROW);
+    break;
+  default:
+    break;
+  }
 }
 
 void initJoystick()
 {
   joyBtnUp
       .begin(joyInfo.pinUp)
-      .onPress(onJoyUpPress)
-      .onRelease(onJoyUpRelease);
+      .onPress(onJoyPress, UP)
+      .onRelease(onJoyRelease, UP);
 
   joyBtnDown
       .begin(joyInfo.pinDown)
-      .onPress(onJoyDownPress)
-      .onRelease(onJoyDownRelease);
+      .onPress(onJoyPress, DOWN)
+      .onRelease(onJoyRelease, DOWN);
 
   joyBtnLeft
       .begin(joyInfo.pinLeft)
-      .onPress(onJoyLeftPress)
-      .onRelease(onJoyLeftRelease);
+      .onPress(onJoyPress, LEFT)
+      .onRelease(onJoyRelease, LEFT);
 
   joyBtnRight
       .begin(joyInfo.pinRight)
-      .onPress(onJoyRightPress)
-      .onRelease(onJoyRightRelease);
+      .onPress(onJoyPress, RIGHT)
+      .onRelease(onJoyRelease, RIGHT);
+}
+
+void updateButtonLeds()
+{
+  for (uint8_t i = 0; i < NUM_BUTTONS; i++)
+  {
+    int onOff = progState.idxActiveButton == i ? atmLeds[i].EVT_ON : atmLeds[i].EVT_OFF;
+    atmLeds[i].trigger(onOff);
+  }
 }
 
 void onButtonPress(int idx, int v, int up)
 {
-  Keyboard.write(BUTTON_KEY_MAP[idx]);
+  pressKey(BUTTON_KEY_MAP[idx]);
+  progState.idxActiveButton = -1;
+  updateButtonLeds();
 }
 
 void onActionButtonPress(int idx, int v, int up)
 {
-  Keyboard.print(ACTION_BUTTON_KEY);
+  pressKey(ACTION_BUTTON_KEY);
 }
 
 void initButtons()
@@ -250,6 +281,20 @@ void heartbeat()
   uduino.println(now);
 }
 
+void onTimerState(int idx, int v, int up)
+{
+  updateButtonLeds();
+}
+
+void initTimerState()
+{
+  timerState
+      .begin(TIMER_STATE_MS)
+      .repeat(-1)
+      .onTimer(onTimerState)
+      .start();
+}
+
 void setup()
 {
   const uint32_t blinkDuration = 50;
@@ -261,6 +306,7 @@ void setup()
   atmLedBuiltin.begin(LED_BUILTIN).blink(blinkDuration, blinkPause, blinkRepeat);
   initJoystick();
   initButtons();
+  initTimerState();
   uduino.addCommand("blinkLed", blinkLed);
   uduino.addCommand("initGame", initGame);
   uduino.addCommand("setActiveButton", setActiveButton);
