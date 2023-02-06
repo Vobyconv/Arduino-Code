@@ -281,6 +281,12 @@ void heartbeat()
   uduino.println(now);
 }
 
+void turnOff()
+{
+  progState.idxActiveButton = -1;
+  updateButtonLeds();
+}
+
 void onTimerState(int idx, int v, int up)
 {
   updateButtonLeds();
@@ -310,6 +316,7 @@ void setup()
   uduino.addCommand("blinkLed", blinkLed);
   uduino.addCommand("initGame", initGame);
   uduino.addCommand("setActiveButton", setActiveButton);
+  uduino.addCommand("turnOff", turnOff);
 }
 
 void loop()
