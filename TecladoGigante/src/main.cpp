@@ -27,13 +27,13 @@ const int NUM_MUX_CHANNELS = 16;
   +----+----+----+------------------------+----+----+----+----+
 */
 
-const uint8_t CODE_ENYE = 0x33;
+const uint8_t CODE_ENYE = 136+0x33;
 
 const uint8_t MUX_ONE_MAP[NUM_MUX_CHANNELS] = {
     'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'A', 'S', 'D', 'F', 'G', 'H'};
 
 const uint8_t MUX_TWO_MAP[NUM_MUX_CHANNELS] = {
-    'J', 'K', 'L', CODE_ENYE, 'Z', 'X', 'C', 'V', 'B', 'N', 'M', KEY_RETURN, KEY_DELETE, ' ', ' ', ' '};
+    'J', 'K', 'L', CODE_ENYE, 'Z', 'X', 'C', 'V', 'B', 'N', 'M', KEY_RETURN, KEY_BACKSPACE, ' ', ' ', ' '};
 
 //CODE_ENYE
 
