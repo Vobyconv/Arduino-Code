@@ -1,5 +1,6 @@
 #include "rdm630.h"
 #include <Adafruit_NeoPixel.h>
+#include <EEPROM.h>
 
 /** RFID **/
 const byte PIN_RFID_RX = 8;
@@ -51,6 +52,10 @@ const uint8_t PIN_LEDS_SECRET = 12;
 const uint16_t NUM_LEDS_SECRET = 10;
 Adafruit_NeoPixel secretStrip = Adafruit_NeoPixel(NUM_LEDS_SECRET, PIN_LEDS_SECRET, NEO_GRB + NEO_KHZ800);
 
+/** EEPROM **/
+const int EEPROM_SECRET_FLAG_ADDR = 0;
+bool secretUnlocked = false;
+
 /** Funciones de audio **/
 void playTrack(byte trackPin) {
   if (digitalRead(PIN_AUDIO_ACT) == LOW) return;
@@ -100,10 +105,36 @@ void initButtons() {
   }
 }
 
+void startupBlink() {
+  const uint32_t blue = Adafruit_NeoPixel::Color(0, 0, 255);
+  for (int k = 0; k < 2; k++) {
+    for (int i = 0; i < NUM_LEDS_AUDIO; i++) {
+      audioStrip.setPixelColor(i, blue);
+    }
+    for (int i = 0; i < NUM_LEDS_SECRET; i++) {
+      secretStrip.setPixelColor(i, blue);
+    }
+    audioStrip.show();
+    secretStrip.show();
+    delay(500);
+
+    audioStrip.clear();
+    secretStrip.clear();
+    audioStrip.show();
+    secretStrip.show();
+    delay(500);
+  }
+}
+
 /** Botones y secuencia **/
 void checkButtons() {
+  if (secretUnlocked) return;
+
   for (int i = 0; i < NUM_BUTTONS; i++) {
     if (digitalRead(BUTTON_PINS[i]) == LOW) {
+      Serial.print("Botón pulsado: ");
+      Serial.println(i);
+
       inputBuffer[bufferIndex] = i;
       bufferIndex = (bufferIndex + 1) % SEQUENCE_LENGTH;
       delay(300);
@@ -111,6 +142,8 @@ void checkButtons() {
       if (isSequenceCorrect()) {
         activateSecretStrip();
         playTrack(AUDIO_SECRET_PIN);
+        EEPROM.update(EEPROM_SECRET_FLAG_ADDR, 1);
+        secretUnlocked = true;
       }
     }
   }
@@ -143,6 +176,10 @@ void setup() {
   initAudioPins();
   initLeds();
   initButtons();
+
+  secretUnlocked = EEPROM.read(EEPROM_SECRET_FLAG_ADDR) == 1;
+  startupBlink();
+
   Serial.println(">> Sistema RFID + Botones iniciado");
 }
 
