@@ -10,11 +10,11 @@ const int NUM_TRACKS = 5;
 const int TAGS_PER_TRACK = 2;
 
 const String TRACK_TAG_IDS[NUM_TRACKS][TAGS_PER_TRACK] = {
-    {"1D0027A729B4", "4300A80C13F4"},
-    {"1D00279848EA", "3C00D5A7AFE1"},
-    {"4300A88595FB", "4300A13863B9"},
-    {"4300A7A4A0E0", "4300A8038B63"},
-    {"4300A7C7C7E4", "4300A78CBDD5"}};
+    {"6400D43A8100", "4300A80C13F4"},
+    {"4D0066410900", "3C00D5A7AFE1"},
+    {"4E0015B53E00", "4300A13863B9"},
+    {"6B001C50FC00", "4300A8038B63"},
+    {"4E00163AA400", "4300A78CBDD5"}};
 
 /** Audio FX **/
 const byte AUDIO_TRACK_PINS[NUM_TRACKS] = {A0, A1, A2, A3, A4};
@@ -42,7 +42,7 @@ unsigned long lastDebounceTime[NUM_BUTTONS]; // Track last transition time for e
 const unsigned long DEBOUNCE_DELAY = 50;     // 50ms debounce window
 
 const int SEQUENCE_LENGTH = 6;
-const byte SECRET_SEQUENCE[SEQUENCE_LENGTH] = {0, 2, 1, 4, 3, 5};
+const byte SECRET_SEQUENCE[SEQUENCE_LENGTH] = {0, 1, 2, 3, 4, 5};
 
 byte inputBuffer[SEQUENCE_LENGTH];
 int bufferIndex = 0;
