@@ -1,5 +1,5 @@
 #include <Automaton.h>
-#include <Atm_button.h>
+//#include <Atm_button.h>
 #include <Adafruit_NeoPixel.h>
 
 #define LED_PIN     12
@@ -12,7 +12,7 @@ Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_RGB + NEO_KHZ800);
 Atm_button sensor[5];
 int posiciones[5] = {0, 0, 0, 0, 0};
 
-int combinacionObjetivo[5] = {1, 2, 3, 1, 2};
+int combinacionObjetivo[5] = {2, 3, 1, 1, 3};
 
 // --- NUEVO: variables para el modo victoria ---
 bool modoVictoria = false;
@@ -32,8 +32,8 @@ void setSegmentColor(int segment, int pos) {
 
   uint32_t color;
   switch (pos) {
-    case 1: color = strip.Color(255, 255, 0); break;
-    case 2: color = strip.Color(255, 165, 0); break;
+    case 1: color = strip.Color(10, 255, 0); break;
+    case 2: color = strip.Color(255, 155, 0); break;
     case 3: color = strip.Color(255, 0, 0); break;
   }
 
